@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { toast, Toaster } from "sonner";
 import { SkillSelector } from "./SkillSelector";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
@@ -61,6 +62,7 @@ interface JobFormState {
 }
 
 export default function CreateJob() {
+    // Remove showSuccess state, use Sonner toast instead
     const [aiLoading, setAiLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [open, setOpen] = useState(false);
@@ -131,120 +133,161 @@ export default function CreateJob() {
     };
 
     // Handler for submit (to be integrated with backend)
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Basic validation
         if (!form.title || !form.company || !form.location || !form.expiry || !form.duration || skills.length === 0) {
             setError("Please fill all required fields and select at least one skill.");
             return;
         }
         setError(null);
-        // TODO: Integrate with backend endpoint
-        console.log({ ...form, skills, jobStatus });
+        try {
+            const res = await fetch("http://localhost:8000/jobs", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    recruiter_id: "440b5abb-cd64-4df3-9c01-caa28d9a1862", // Replace with actual recruiter id if available
+                    title: form.title,
+                    description: form.description,
+                    salary: form.salary,
+                    skills: skills.join(", "),
+                    job_type: "full-time",
+                    end_date: form.expiry
+                })
+            });
+            if (!res.ok) {
+                let errorMsg = "Failed to create job.";
+                try {
+                    const errData = await res.json();
+                    errorMsg = errData.detail || errData.message || errorMsg;
+                } catch { }
+                throw new Error(errorMsg);
+            }
+            const data = await res.json();
+            setOpen(false);
+            setForm({
+                title: "",
+                company: "",
+                location: "",
+                salary: "",
+                expiry: "",
+                duration: "",
+                description: "",
+            });
+            setSkills([]);
+            setJobStatus(false);
+            toast.success("Job created successfully!");
+        } catch (err) {
+            setError((err as Error).message);
+        }
     };
 
     return (
-        <Dialog open={open} onOpenChange={setOpen}>
-            <Button onClick={() => setOpen(true)} size="lg" className="px-6 py-3 text-lg">Create New Job</Button>
-            <DialogContent className="max-w-[1100px] w-full h-[90vh] mx-auto overflow-y-auto bg-background dark:bg-zinc-900 dark:text-white border dark:border-zinc-800 p-8 rounded-xl">
-                <DialogHeader>
-                    <DialogTitle className="text-2xl font-bold mb-1">Create New Job</DialogTitle>
-                    <span className="text-muted-foreground text-base mb-4">Fill in the details to create a new job posting.</span>
-                </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    {error && (
-                        <div className="text-destructive text-base mb-2">{error}</div>
-                    )}
-                    <div className="grid grid-cols-2 gap-6">
-                        <div>
-                            <label htmlFor="title" className="block mb-2 font-medium dark:text-white">Job Title</label>
-                            <Input id="title" name="title" placeholder="e.g. Software Engineer" value={form.title} onChange={handleChange} className="h-12 text-base dark:bg-zinc-800 dark:text-white dark:border-zinc-700" />
-                        </div>
-                        <div>
-                            <label htmlFor="company" className="block mb-2 font-medium dark:text-white">Company Name</label>
-                            <Input id="company" name="company" placeholder="e.g. Acme Inc." value={form.company} onChange={handleChange} className="h-12 text-base dark:bg-zinc-800 dark:text-white dark:border-zinc-700" />
-                        </div>
-                        <div>
-                            <label className="block mb-2 font-medium dark:text-white">Skills</label>
-                            <SkillSelector
-                                skillGroups={skillGroups}
-                                selectedSkills={skills}
-                                onSkillChange={handleSkillChange}
-                            />
-                            {skills.length > 0 && (
-                                <div className="flex flex-wrap gap-2 mt-2">
-                                    {skillChips}
+        <>
+            <Dialog open={open} onOpenChange={setOpen}>
+                <Button onClick={() => setOpen(true)} size="lg" className="px-6 py-3 text-lg">Create New Job</Button>
+                <DialogContent className="max-w-[1100px] w-full h-[90vh] mx-auto overflow-y-auto bg-background dark:bg-zinc-900 dark:text-white border dark:border-zinc-800 p-8 rounded-xl">
+                    <DialogHeader>
+                        <DialogTitle className="text-2xl font-bold mb-1">Create New Job</DialogTitle>
+                        <span className="text-muted-foreground text-base mb-4">Fill in the details to create a new job posting.</span>
+                    </DialogHeader>
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        {error && (
+                            <div className="text-destructive text-base mb-2">{error}</div>
+                        )}
+                        <div className="grid grid-cols-2 gap-6">
+                            <div>
+                                <label htmlFor="title" className="block mb-2 font-medium dark:text-white">Job Title</label>
+                                <Input id="title" name="title" placeholder="e.g. Software Engineer" value={form.title} onChange={handleChange} className="h-12 text-base dark:bg-zinc-800 dark:text-white dark:border-zinc-700" />
+                            </div>
+                            <div>
+                                <label htmlFor="company" className="block mb-2 font-medium dark:text-white">Company Name</label>
+                                <Input id="company" name="company" placeholder="e.g. Acme Inc." value={form.company} onChange={handleChange} className="h-12 text-base dark:bg-zinc-800 dark:text-white dark:border-zinc-700" />
+                            </div>
+                            <div>
+                                <label className="block mb-2 font-medium dark:text-white">Skills</label>
+                                <SkillSelector
+                                    skillGroups={skillGroups}
+                                    selectedSkills={skills}
+                                    onSkillChange={handleSkillChange}
+                                />
+                                {skills.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 mt-2">
+                                        {skillChips}
+                                    </div>
+                                )}
+                            </div>
+                            <div>
+                                <label htmlFor="location" className="block mb-2 font-medium dark:text-white">Location</label>
+                                <Select value={form.location} onValueChange={value => setForm(f => ({ ...f, location: value }))}>
+                                    <SelectTrigger className="h-12 w-full text-base dark:bg-zinc-800 dark:text-white dark:border-zinc-700">
+                                        <SelectValue placeholder="Select location" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {locationsList.map((loc) => (
+                                            <SelectItem key={loc} value={loc}>{loc}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div>
+                                <label htmlFor="salary" className="block mb-2 font-medium dark:text-white">Salary (Optional)</label>
+                                <Input id="salary" name="salary" placeholder="e.g. $80,000 - $100,000" value={form.salary} onChange={handleChange} className="h-12 text-base dark:bg-zinc-800 dark:text-white dark:border-zinc-700" />
+                            </div>
+                            <div>
+                                <label htmlFor="expiry" className="block mb-2 font-medium dark:text-white">Expiry Date</label>
+                                <Input id="expiry" type="date" name="expiry" value={form.expiry} onChange={handleChange} className="h-12 text-base dark:bg-zinc-800 dark:text-white dark:border-zinc-700" />
+                            </div>
+                            <div>
+                                <label htmlFor="duration" className="block mb-2 font-medium dark:text-white">Interview Duration</label>
+                                <Select value={form.duration} onValueChange={value => setForm(f => ({ ...f, duration: value }))}>
+                                    <SelectTrigger className="h-12 w-full text-base dark:bg-zinc-800 dark:text-white dark:border-zinc-700">
+                                        <SelectValue placeholder="Select interview duration *" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {interviewDurations.map((d) => (
+                                            <SelectItem key={d} value={d}>{d}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <span className="text-muted-foreground text-xs mt-1 block">Set the maximum duration for the AI interview session (required)</span>
+                            </div>
+                            <div className="flex flex-col justify-between">
+                                <label className="block mb-2 font-medium dark:text-white">Job Status</label>
+                                <div className="flex items-center gap-3 mb-2">
+                                    <Button type="button" variant={jobStatus ? "default" : "outline"} onClick={handleStatusChange} size="sm" className="px-4">
+                                        {jobStatus ? "Active" : "Inactive"}
+                                    </Button>
+                                    <span className="text-muted-foreground text-sm dark:text-zinc-400">Set whether this job is active and visible to candidates</span>
                                 </div>
-                            )}
-                        </div>
-                        <div>
-                            <label htmlFor="location" className="block mb-2 font-medium dark:text-white">Location</label>
-                            <Select value={form.location} onValueChange={value => setForm(f => ({ ...f, location: value }))}>
-                                <SelectTrigger className="h-12 w-full text-base dark:bg-zinc-800 dark:text-white dark:border-zinc-700">
-                                    <SelectValue placeholder="Select location" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {locationsList.map((loc) => (
-                                        <SelectItem key={loc} value={loc}>{loc}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div>
-                            <label htmlFor="salary" className="block mb-2 font-medium dark:text-white">Salary (Optional)</label>
-                            <Input id="salary" name="salary" placeholder="e.g. $80,000 - $100,000" value={form.salary} onChange={handleChange} className="h-12 text-base dark:bg-zinc-800 dark:text-white dark:border-zinc-700" />
-                        </div>
-                        <div>
-                            <label htmlFor="expiry" className="block mb-2 font-medium dark:text-white">Expiry Date</label>
-                            <Input id="expiry" type="date" name="expiry" value={form.expiry} onChange={handleChange} className="h-12 text-base dark:bg-zinc-800 dark:text-white dark:border-zinc-700" />
-                        </div>
-                        <div>
-                            <label htmlFor="duration" className="block mb-2 font-medium dark:text-white">Interview Duration</label>
-                            <Select value={form.duration} onValueChange={value => setForm(f => ({ ...f, duration: value }))}>
-                                <SelectTrigger className="h-12 w-full text-base dark:bg-zinc-800 dark:text-white dark:border-zinc-700">
-                                    <SelectValue placeholder="Select interview duration *" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {interviewDurations.map((d) => (
-                                        <SelectItem key={d} value={d}>{d}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <span className="text-muted-foreground text-xs mt-1 block">Set the maximum duration for the AI interview session (required)</span>
-                        </div>
-                        <div className="flex flex-col justify-between">
-                            <label className="block mb-2 font-medium dark:text-white">Job Status</label>
-                            <div className="flex items-center gap-3 mb-2">
-                                <Button type="button" variant={jobStatus ? "default" : "outline"} onClick={handleStatusChange} size="sm" className="px-4">
-                                    {jobStatus ? "Active" : "Inactive"}
-                                </Button>
-                                <span className="text-muted-foreground text-sm dark:text-zinc-400">Set whether this job is active and visible to candidates</span>
                             </div>
                         </div>
-                    </div>
-                    <div>
-                        <label htmlFor="description" className="block mb-2 font-medium dark:text-white">Job Description</label>
-                        <div className="flex gap-2 items-start">
-                            <Textarea
-                                id="description"
-                                name="description"
-                                placeholder="Enter job description or generate with AI"
-                                value={form.description}
-                                onChange={handleChange}
-                                className="flex-1 h-32 text-base dark:bg-zinc-800 dark:text-white dark:border-zinc-700"
-                            />
-                            <Button type="button" onClick={handleAIGenerate} disabled={aiLoading} className="h-12 px-4 text-base dark:bg-zinc-800 dark:text-white dark:border-zinc-700">
-                                {aiLoading ? "Generating..." : "Generate with AI"}
-                            </Button>
+                        <div>
+                            <label htmlFor="description" className="block mb-2 font-medium dark:text-white">Job Description</label>
+                            <div className="flex gap-2 items-start">
+                                <Textarea
+                                    id="description"
+                                    name="description"
+                                    placeholder="Enter job description or generate with AI"
+                                    value={form.description}
+                                    onChange={handleChange}
+                                    className="flex-1 h-32 text-base dark:bg-zinc-800 dark:text-white dark:border-zinc-700"
+                                />
+                                <Button type="button" onClick={handleAIGenerate} disabled={aiLoading} className="h-12 px-4 text-base dark:bg-zinc-800 dark:text-white dark:border-zinc-700">
+                                    {aiLoading ? "Generating..." : "Generate with AI"}
+                                </Button>
+                            </div>
+                            <span className="text-muted-foreground text-xs mt-1 block">You can manually enter the job description or use AI to generate one based on the job title, company, and role.</span>
                         </div>
-                        <span className="text-muted-foreground text-xs mt-1 block">You can manually enter the job description or use AI to generate one based on the job title, company, and role.</span>
-                    </div>
-                    <div className="flex justify-end mt-4">
-                        <Button type="submit" size="lg" className="h-12 px-8 text-base dark:bg-zinc-800 dark:text-white dark:border-zinc-700">Create Job</Button>
-                        <Button type="button" onClick={() => setOpen(false)} variant="outline" size="lg" className="h-12 px-8 text-base ml-4 dark:bg-zinc-800 dark:text-white dark:border-zinc-700">Cancel</Button>
-                    </div>
-                </form>
-            </DialogContent>
-        </Dialog>
+                        <div className="flex justify-end mt-4">
+                            <Button type="submit" size="lg" className="h-12 px-8 text-base dark:bg-zinc-800 dark:text-white dark:border-zinc-700">Create Job</Button>
+                            <Button type="button" onClick={() => setOpen(false)} variant="outline" size="lg" className="h-12 px-8 text-base ml-4 dark:bg-zinc-800 dark:text-white dark:border-zinc-700">Cancel</Button>
+                        </div>
+                    </form>
+                </DialogContent>
+            </Dialog>
+            <Toaster position="top-right" richColors />
+        </>
     );
 }

@@ -3,8 +3,10 @@ import React, { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { PdfUploader } from "@/components/pdf_uploader";
+import { useRouter } from "next/navigation";
 
 export const PdfUploadFlow: React.FC = () => {
+    const router = useRouter();
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [extractedText, setExtractedText] = useState<string>("");
@@ -26,15 +28,6 @@ export const PdfUploadFlow: React.FC = () => {
             const data = await res.json();
             if (res.ok && data.text) {
                 setExtractedText(data.text);
-                setOpen(false);
-                // Send extracted text to backend
-                // Debug: log request details
-                console.log("Sending to backend:", {
-                    url: "http://127.0.0.1:8000/review-resume",
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: { resume: data.text }
-                });
                 const reviewRes = await fetch("http://127.0.0.1:8000/review-resume", {
                     method: "POST",
                     headers: {
@@ -42,19 +35,17 @@ export const PdfUploadFlow: React.FC = () => {
                     },
                     body: JSON.stringify({ resume: data.text }),
                 });
-                // Debug: log response status and headers
-                console.log("Backend response status:", reviewRes.status);
-                console.log("Backend response headers:", Array.from(reviewRes.headers.entries()));
                 let reviewData;
                 try {
                     reviewData = await reviewRes.json();
                 } catch (jsonErr) {
                     reviewData = { error: "Failed to parse backend response as JSON", raw: await reviewRes.text() };
                 }
-                // Debug: log response body
-                console.log("Backend response body:", reviewData);
                 if (reviewRes.ok) {
                     setReviewResult(reviewData);
+                    // Encode review data as base64 to avoid special character issues
+                    const reviewBase64 = btoa(encodeURIComponent(JSON.stringify(reviewData)));
+                    router.push(`/resume-review?data=${reviewBase64}`);
                 } else {
                     setError(reviewData.error || `Failed to review resume (status ${reviewRes.status})`);
                 }
@@ -69,25 +60,18 @@ export const PdfUploadFlow: React.FC = () => {
 
     return (
         <div className="w-full flex flex-col items-center justify-center">
-            <Dialog open={open} onOpenChange={setOpen}>
-                <DialogTrigger asChild>
-                    <Button variant="default" size="lg" onClick={() => setOpen(true)}>
-                        Upload PDF
-                    </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-md">
-                    <DialogHeader>
-                        <DialogTitle>Upload PDF</DialogTitle>
-                    </DialogHeader>
-                    {loading ? (
-                        <div className="flex flex-col items-center justify-center p-8">
-                            <span className="text-muted-foreground">Extracting PDF...</span>
-                        </div>
-                    ) : (
-                        <PdfUploader onUpload={handleUpload} />
-                    )}
-                </DialogContent>
-            </Dialog>
+            <div className="max-w-md w-full">
+                <div className="mb-4">
+                    <h2 className="text-xl font-semibold">Upload PDF</h2>
+                </div>
+                {loading ? (
+                    <div className="flex flex-col items-center justify-center p-8">
+                        <span className="text-muted-foreground">Extracting PDF...</span>
+                    </div>
+                ) : (
+                    <PdfUploader onUpload={handleUpload} />
+                )}
+            </div>
             {error && <p className="mt-4 text-sm text-red-500">{error}</p>}
             {extractedText && (
                 <div className="mt-6 w-full max-w-2xl bg-muted p-4 rounded shadow">
