@@ -10,6 +10,8 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { Command, CommandInput, CommandList, CommandGroup, CommandItem } from "@/components/ui/command";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useAuth } from "@/hooks/use-auth";
+import { jobService, validateJobData, formatJobData } from "@/lib/job-service";
 // You may need to use shadcn's Select, MultiSelect, Switch, DatePicker, etc. If not present, install them.
 
 const skillGroups = [
@@ -61,7 +63,12 @@ interface JobFormState {
     description: string;
 }
 
-export default function CreateJob() {
+interface CreateJobProps {
+    onJobCreated?: () => void; // Callback when job is successfully created
+}
+
+export default function CreateJob({ onJobCreated }: CreateJobProps) {
+    const { user } = useAuth();
     // Remove showSuccess state, use Sonner toast instead
     const [aiLoading, setAiLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -135,36 +142,28 @@ export default function CreateJob() {
     // Handler for submit (to be integrated with backend)
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!form.title || !form.company || !form.location || !form.expiry || !form.duration || skills.length === 0) {
-            setError("Please fill all required fields and select at least one skill.");
+
+        if (!user?.id) {
+            setError("You must be logged in to create a job");
             return;
         }
+
+        // Format and validate the job data
+        const jobData = formatJobData(form, skills, user.id);
+        const validationErrors = validateJobData(jobData);
+
+        if (validationErrors.length > 0) {
+            setError(validationErrors[0]); // Show first error
+            return;
+        }
+
         setError(null);
+
         try {
-            const res = await fetch("http://localhost:8000/jobs", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    recruiter_id: "440b5abb-cd64-4df3-9c01-caa28d9a1862", // Replace with actual recruiter id if available
-                    title: form.title,
-                    description: form.description,
-                    salary: form.salary,
-                    skills: skills.join(", "),
-                    job_type: "full-time",
-                    end_date: form.expiry
-                })
-            });
-            if (!res.ok) {
-                let errorMsg = "Failed to create job.";
-                try {
-                    const errData = await res.json();
-                    errorMsg = errData.detail || errData.message || errorMsg;
-                } catch { }
-                throw new Error(errorMsg);
-            }
-            const data = await res.json();
+            // Use the job service to create the job
+            await jobService.createJob(jobData);
+
+            // Reset form
             setOpen(false);
             setForm({
                 title: "",
@@ -177,7 +176,13 @@ export default function CreateJob() {
             });
             setSkills([]);
             setJobStatus(false);
+
             toast.success("Job created successfully!");
+
+            // Call the callback if provided (to refresh the jobs list)
+            if (onJobCreated) {
+                onJobCreated();
+            }
         } catch (err) {
             setError((err as Error).message);
         }
