@@ -1,268 +1,291 @@
 "use client";
 
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { SiteNavigation } from "@/components/site-navigation";
+import { useAuth } from '@/hooks/use-auth';
 import Link from "next/link";
 import {
-  MessageSquare,
+  Building,
+  UserCheck,
+  ArrowRight,
+  Briefcase,
   Zap,
-  Mic,
-  Code,
-  Play,
-  ExternalLink,
-  Terminal,
-  CheckCircle2
-} from "lucide-react"; export default function HomePage() {
+  Target,
+  Shield,
+  Sparkles
+} from "lucide-react";
+
+export default function HomePage() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && user) {
+      // Redirect authenticated users to their respective dashboards
+      if (user.role === 'recruiter') {
+        router.push('/recruiters/dashboard');
+      } else {
+        router.push('/dashboard');
+      }
+    }
+  }, [user, loading, router]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (user) {
+    return null; // Will redirect in useEffect
+  }
+
   const features = [
     {
-      icon: <MessageSquare className="h-8 w-8" />,
-      title: "Real-time Chat Interface",
-      description: "Bidirectional AI-powered conversation with live message handling and history"
+      icon: <Zap className="h-8 w-8 text-yellow-500" />,
+      title: "AI-Powered Screening",
+      description: "Advanced AI analyzes resumes and conducts initial candidate screenings automatically"
     },
     {
-      icon: <Zap className="h-8 w-8" />,
-      title: "WebSocket Communication",
-      description: "Low-latency real-time connection with auto-reconnection and error handling"
+      icon: <Target className="h-8 w-8 text-blue-500" />,
+      title: "Smart Matching",
+      description: "Intelligent algorithms match candidates with the most suitable job opportunities"
     },
     {
-      icon: <Mic className="h-8 w-8" />,
-      title: "Speech Recognition",
-      description: "Browser-based speech-to-text with live transcription and voice controls"
+      icon: <Shield className="h-8 w-8 text-green-500" />,
+      title: "Secure & Reliable",
+      description: "Enterprise-grade security with reliable data protection and privacy controls"
     },
     {
-      icon: <Code className="h-8 w-8" />,
-      title: "Modern Tech Stack",
-      description: "React.js, TypeScript, Tailwind CSS, shadcn/ui, and custom hooks"
+      icon: <Sparkles className="h-8 w-8 text-purple-500" />,
+      title: "Real-time Insights",
+      description: "Get instant analytics and insights to optimize your recruitment process"
     }
   ];
 
-  const quickStart = [
-    {
-      step: 1,
-      title: "Start Development Server",
-      command: "pnpm dev",
-      description: "Launch the Next.js development server"
-    },
-    {
-      step: 2,
-      title: "Navigate to Interview",
-      command: "/interview",
-      description: "Access the AI Interview System interface"
-    },
-    {
-      step: 3,
-      title: "Setup Backend (Optional)",
-      command: "ws://localhost:8000",
-      description: "WebSocket server for full functionality"
-    }
+  const stats = [
+    { label: "Jobs Posted", value: "10,000+" },
+    { label: "Candidates Placed", value: "5,000+" },
+    { label: "Companies Trust Us", value: "500+" },
+    { label: "Success Rate", value: "85%" }
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-8">
-      <div className="container mx-auto">
-        <SiteNavigation />
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
+      {/* Header */}
+      <header className="bg-white dark:bg-gray-900 shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-3">
+              <div className="bg-primary/10 p-2 rounded-lg">
+                <Briefcase className="h-6 w-6 text-primary" />
+              </div>
+              <span className="text-2xl font-bold text-gray-900 dark:text-white">OpenHire</span>
+            </div>
+            <nav className="hidden md:flex items-center space-x-8">
+              <Link href="#features" className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors">
+                Features
+              </Link>
+              <Link href="#how-it-works" className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors">
+                How it Works
+              </Link>
+              <Link href="#pricing" className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors">
+                Pricing
+              </Link>
+            </nav>
+          </div>
+        </div>
+      </header>
 
-        {/* Hero Section */}
-        <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold text-gray-900 mb-6">
-            AI Interview System
+      {/* Hero Section */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto text-center">
+          <h1 className="text-4xl md:text-6xl font-bold text-gray-900 dark:text-white mb-6">
+            The Future of <span className="text-primary">Recruitment</span>
           </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
-            A modern React.js frontend for conducting AI-powered interviews with real-time
-            WebSocket communication, speech recognition, and comprehensive analysis.
+          <p className="text-xl text-gray-600 dark:text-gray-400 mb-12 max-w-3xl mx-auto">
+            Connect top talent with amazing opportunities using our AI-powered recruitment platform.
+            Streamline hiring for recruiters and unlock career potential for job seekers.
           </p>
 
-          <div className="flex justify-center gap-4 mb-8">
-            <Badge variant="outline" className="flex items-center gap-2 px-4 py-2">
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
-              TypeScript Ready
-            </Badge>
-            <Badge variant="outline" className="flex items-center gap-2 px-4 py-2">
-              <CheckCircle2 className="h-4 w-4 text-blue-600" />
-              Real-time WebSocket
-            </Badge>
-            <Badge variant="outline" className="flex items-center gap-2 px-4 py-2">
-              <CheckCircle2 className="h-4 w-4 text-purple-600" />
-              Speech Recognition
-            </Badge>
-          </div>
-
-          <div className="flex justify-center gap-4">
-            <Link href="/demo">
-              <Button size="lg" className="flex items-center gap-2">
-                <Play className="h-5 w-5" />
-                Try Demo (No Backend)
-              </Button>
-            </Link>
-            <Link href="/interview">
-              <Button variant="outline" size="lg" className="flex items-center gap-2">
-                <MessageSquare className="h-5 w-5" />
-                Full Interview System
-              </Button>
-            </Link>
-            <Link href="/docs">
-              <Button variant="outline" size="lg" className="flex items-center gap-2">
-                <Code className="h-5 w-5" />
-                View Documentation
-              </Button>
-            </Link>
-          </div>
-        </div>
-
-        {/* Features Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          {features.map((feature, index) => (
-            <Card key={index} className="text-center hover:shadow-lg transition-shadow">
-              <CardContent className="p-6">
-                <div className="text-blue-600 mb-4 flex justify-center">{feature.icon}</div>
-                <h3 className="font-semibold text-lg mb-2">{feature.title}</h3>
-                <p className="text-sm text-muted-foreground">{feature.description}</p>
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
+            <Card className="w-full sm:w-80 hover:shadow-lg transition-all duration-200 hover:scale-105">
+              <CardHeader className="text-center pb-4">
+                <div className="mx-auto mb-4 bg-blue-100 dark:bg-blue-900/20 p-3 rounded-full w-fit">
+                  <Building className="h-8 w-8 text-blue-600" />
+                </div>
+                <CardTitle className="text-xl">For Recruiters</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                  Find and hire the best talent with AI-powered screening and smart matching
+                </p>
+                <div className="space-y-3">
+                  <Link href="/recruiters/auth/signup" className="block">
+                    <Button className="w-full" size="lg">
+                      Get Started as Recruiter
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                  <Link href="/recruiters/auth/signin" className="block">
+                    <Button variant="outline" className="w-full">
+                      Sign In
+                    </Button>
+                  </Link>
+                </div>
               </CardContent>
             </Card>
-          ))}
+
+            <Card className="w-full sm:w-80 hover:shadow-lg transition-all duration-200 hover:scale-105">
+              <CardHeader className="text-center pb-4">
+                <div className="mx-auto mb-4 bg-green-100 dark:bg-green-900/20 p-3 rounded-full w-fit">
+                  <UserCheck className="h-8 w-8 text-green-600" />
+                </div>
+                <CardTitle className="text-xl">For Job Seekers</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                  Discover your dream job with personalized recommendations and AI assistance
+                </p>
+                <div className="space-y-3">
+                  <Link href="/auth/signup" className="block">
+                    <Button className="w-full" size="lg">
+                      Start Job Search
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                  <Link href="/auth/signin" className="block">
+                    <Button variant="outline" className="w-full">
+                      Sign In
+                    </Button>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
+            {stats.map((stat, index) => (
+              <div key={index} className="text-center">
+                <div className="text-3xl font-bold text-primary mb-2">{stat.value}</div>
+                <div className="text-gray-600 dark:text-gray-400">{stat.label}</div>
+              </div>
+            ))}
+          </div>
         </div>
+      </section>
 
-        {/* Quick Start */}
-        <Card className="mb-12">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Terminal className="h-6 w-6" />
-              Quick Start Guide
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {quickStart.map((item) => (
-                <div key={item.step} className="text-center">
-                  <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-lg font-semibold mx-auto mb-4">
-                    {item.step}
+      {/* Features Section */}
+      <section id="features" className="py-20 bg-gray-50 dark:bg-gray-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
+              Why Choose OpenHire?
+            </h2>
+            <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+              Our platform combines cutting-edge AI technology with intuitive design to revolutionize the hiring process.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {features.map((feature, index) => (
+              <Card key={index} className="text-center hover:shadow-lg transition-shadow duration-200">
+                <CardContent className="p-6">
+                  <div className="mx-auto mb-4 w-fit">
+                    {feature.icon}
                   </div>
-                  <h3 className="font-semibold mb-2">{item.title}</h3>
-                  <div className="bg-gray-900 text-gray-100 p-3 rounded font-mono text-sm mb-2">
-                    {item.command}
-                  </div>
-                  <p className="text-sm text-muted-foreground">{item.description}</p>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
+                    {feature.title}
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    {feature.description}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
 
-        {/* Architecture Overview */}
-        <Card className="mb-12">
-          <CardHeader>
-            <CardTitle>System Architecture</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <div>
-                <h3 className="font-semibold mb-4">Frontend Components</h3>
-                <ul className="space-y-2 text-sm">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    <code>AIInterviewSystemV2</code> - Main interview component
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    <code>useWebSocket</code> - Custom WebSocket hook
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    <code>useSpeechRecognition</code> - Speech API wrapper
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    <code>InterviewSetup</code> - Configuration form
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    <code>ChatInterface</code> - Message display
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-green-600" />
-                    <code>VoiceControls</code> - Audio recording
-                  </li>
-                </ul>
-              </div>
+      {/* How it Works Section */}
+      <section id="how-it-works" className="py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
+              How It Works
+            </h2>
+            <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+              Get started in minutes with our simple three-step process.
+            </p>
+          </div>
 
-              <div>
-                <h3 className="font-semibold mb-4">Key Features</h3>
-                <ul className="space-y-2 text-sm">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-blue-600" />
-                    Real-time bidirectional communication
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-blue-600" />
-                    Live speech-to-text transcription
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-blue-600" />
-                    Interview progress tracking
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-blue-600" />
-                    Connection status monitoring
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-blue-600" />
-                    Professional UI with animations
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-blue-600" />
-                    Cross-browser compatibility
-                  </li>
-                </ul>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="text-center">
+              <div className="bg-primary/10 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl font-bold text-primary">1</span>
               </div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
+                Sign Up & Setup
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                Create your account and complete your profile with just a few clicks.
+              </p>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Tech Stack */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Technology Stack</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-              <div>
-                <Badge variant="outline" className="mb-3 w-full">Frontend</Badge>
-                <div className="space-y-1 text-sm">
-                  <div>React.js 19</div>
-                  <div>TypeScript</div>
-                  <div>Next.js 15</div>
-                </div>
+            <div className="text-center">
+              <div className="bg-primary/10 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl font-bold text-primary">2</span>
               </div>
-              <div>
-                <Badge variant="outline" className="mb-3 w-full">Styling</Badge>
-                <div className="space-y-1 text-sm">
-                  <div>Tailwind CSS</div>
-                  <div>shadcn/ui</div>
-                  <div>Lucide Icons</div>
-                </div>
-              </div>
-              <div>
-                <Badge variant="outline" className="mb-3 w-full">Communication</Badge>
-                <div className="space-y-1 text-sm">
-                  <div>WebSocket API</div>
-                  <div>Speech Recognition</div>
-                  <div>Real-time messaging</div>
-                </div>
-              </div>
-              <div>
-                <Badge variant="outline" className="mb-3 w-full">State Management</Badge>
-                <div className="space-y-1 text-sm">
-                  <div>React Hooks</div>
-                  <div>Custom Hooks</div>
-                  <div>Local State</div>
-                </div>
-              </div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
+                AI-Powered Matching
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                Our AI analyzes profiles and preferences to find the perfect matches.
+              </p>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+
+            <div className="text-center">
+              <div className="bg-primary/10 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl font-bold text-primary">3</span>
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
+                Connect & Hire
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                Connect with matched candidates or jobs and complete the hiring process.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-gray-900 text-white py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <div className="flex items-center justify-center space-x-3 mb-4">
+              <div className="bg-primary/10 p-2 rounded-lg">
+                <Briefcase className="h-6 w-6 text-primary" />
+              </div>
+              <span className="text-2xl font-bold">OpenHire</span>
+            </div>
+            <p className="text-gray-400 mb-8">
+              Connecting talent with opportunity through AI-powered recruitment.
+            </p>
+            <div className="border-t border-gray-800 pt-8">
+              <p className="text-gray-400">
+                © 2025 OpenHire. All rights reserved.
+              </p>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

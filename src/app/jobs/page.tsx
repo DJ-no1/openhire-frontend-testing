@@ -3,7 +3,8 @@ import { Card } from "@/components/ui/card";
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { PdfUploadFlow } from "@/components/pdf_upload_flow";
+import { JobApplicationModal } from "@/components/job-application-modal";
+import { type Job as JobType } from "@/lib/api";
 
 type Job = {
     id: string;
@@ -99,19 +100,12 @@ export default function ListJobPage() {
                 </DialogContent>
             </Dialog>
 
-            {/* Apply Dialog using PdfUploadFlow */}
-            <Dialog open={applyDialogOpen} onOpenChange={setApplyDialogOpen}>
-                <DialogContent className="max-w-md">
-                    {applyJob && (
-                        <>
-                            <DialogHeader>
-                                <DialogTitle>Apply for {applyJob.title}</DialogTitle>
-                            </DialogHeader>
-                            <PdfUploadFlow />
-                        </>
-                    )}
-                </DialogContent>
-            </Dialog>
+            {/* Apply Dialog using JobApplicationModal */}
+            <JobApplicationModal
+                job={applyJob as JobType | null}
+                open={applyDialogOpen}
+                onOpenChange={setApplyDialogOpen}
+            />
         </div>
     );
 }

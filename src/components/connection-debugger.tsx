@@ -4,43 +4,77 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, AlertCircle, Loader2, Wifi } from "lucide-react";
+import { CheckCircle2, AlertCircle, Loader2, Wifi, Database, Code } from "lucide-react";
 import { toast } from "sonner";
+import { DatabaseService } from "@/lib/database";
+import { supabase } from "@/lib/supabaseClient";
 
 export function ConnectionDebugger() {
     const [testing, setTesting] = useState(false);
     const [results, setResults] = useState<{
         http: 'pending' | 'success' | 'error';
         websocket: 'pending' | 'success' | 'error';
+        database: 'pending' | 'success' | 'error';
         details: string[];
     }>({
         http: 'pending',
         websocket: 'pending',
+        database: 'pending',
         details: []
     });
 
     const testBackend = async () => {
         setTesting(true);
-        setResults({ http: 'pending', websocket: 'pending', details: [] });
+        setResults({ http: 'pending', websocket: 'pending', database: 'pending', details: [] });
 
         const details: string[] = [];
+
+        // Test Database connection first
+        try {
+            details.push('🔄 Testing Supabase database connection...');
+
+            const { data, error } = await supabase.from('users').select('id').limit(1);
+            if (error) {
+                details.push(`❌ Database error: ${error.message}`);
+                setResults(prev => ({ ...prev, database: 'error', details: [...details] }));
+            } else {
+                details.push('✅ Database connection successful');
+                setResults(prev => ({ ...prev, database: 'success', details: [...details] }));
+            }
+        } catch (error) {
+            details.push(`❌ Database connection failed: ${error}`);
+            setResults(prev => ({ ...prev, database: 'error', details: [...details] }));
+        }
 
         // Test HTTP connection
         try {
             details.push('🔄 Testing HTTP connection to localhost:8000...');
 
-            const response = await fetch('http://localhost:8000/health', {
+            // Try the root endpoint first to get backend info
+            const rootResponse = await fetch('http://localhost:8000/', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
                 },
             });
 
-            if (response.ok) {
-                details.push('✅ HTTP connection successful');
+            if (rootResponse.ok) {
+                const rootData = await rootResponse.json();
+                details.push('✅ Backend is running and responsive');
+                details.push(`📋 Backend: ${rootData.message || 'OpenHire Backend'}`);
+
+                // Test jobs endpoint
+                const jobsResponse = await fetch('http://localhost:8000/jobs');
+                if (jobsResponse.ok) {
+                    const jobs = await jobsResponse.json();
+                    details.push(`✅ Jobs endpoint working (${jobs.length} jobs available)`);
+                } else {
+                    details.push(`⚠️ Jobs endpoint issue: ${jobsResponse.status}`);
+                }
+
                 setResults(prev => ({ ...prev, http: 'success', details: [...details] }));
             } else {
-                details.push(`❌ HTTP error: ${response.status} ${response.statusText}`);
+                details.push(`❌ Backend responded with error: ${rootResponse.status}`);
                 setResults(prev => ({ ...prev, http: 'error', details: [...details] }));
             }
         } catch (error) {
@@ -93,6 +127,84 @@ export function ConnectionDebugger() {
         }
     };
 
+    const testDatabaseOperations = async () => {
+        setTesting(true);
+        const details: string[] = [];
+
+        try {
+            details.push('🔄 Testing database operations...');
+
+            // Test if we can fetch jobs
+            const { data: jobs, error: jobError } = await supabase.from('jobs').select('*').limit(1);
+            if (jobError) {
+                details.push(`❌ Failed to fetch jobs: ${jobError.message}`);
+                setResults(prev => ({ ...prev, details: [...prev.details, ...details] }));
+                setTesting(false);
+                return;
+            }
+
+            if (!jobs || jobs.length === 0) {
+                details.push('⚠️ No jobs found in database - need to add some jobs first');
+                setResults(prev => ({ ...prev, details: [...prev.details, ...details] }));
+                setTesting(false);
+                return;
+            }
+
+            details.push(`✅ Found ${jobs.length} job(s) in database`);
+
+            // Test creating an application
+            const testJobId = jobs[0].id;
+            const testCandidateId = crypto.randomUUID();
+
+            details.push('🔄 Creating test application...');
+            const application = await DatabaseService.createApplication(testJobId, testCandidateId);
+            details.push(`✅ Application created with ID: ${application.id}`);
+
+            // Test saving resume analysis (mock data)
+            details.push('🔄 Testing resume analysis save...');
+            const mockAnalysis = {
+                jd: "Test job description",
+                resume: "Test resume content",
+                analysis: {
+                    overall_score: 85,
+                    passed_hard_filters: true,
+                    confidence: 0.9,
+                    dimension_breakdown: {
+                        skill_match: { score: 90, weight: 0.2, evidence: ["Test evidence"] },
+                        experience_fit: { score: 80, weight: 0.15, evidence: ["Test evidence"] },
+                        impact_outcomes: { score: 85, weight: 0.1, evidence: ["Test evidence"] },
+                        role_alignment: { score: 88, weight: 0.15, evidence: ["Test evidence"] },
+                        project_tech_depth: { score: 82, weight: 0.1, evidence: ["Test evidence"] },
+                        career_trajectory: { score: 86, weight: 0.1, evidence: ["Test evidence"] },
+                        communication_clarity: { score: 84, weight: 0.1, evidence: ["Test evidence"] },
+                        certs_education: { score: 80, weight: 0.05, evidence: ["Test evidence"] },
+                        extras: { score: 85, weight: 0.05, evidence: ["Test evidence"] }
+                    },
+                    hard_filter_failures: [],
+                    risk_flags: []
+                }
+            };
+
+            const resumeRecord = await DatabaseService.saveResumeAnalysis(
+                application.id,
+                'test-resume.pdf',
+                mockAnalysis
+            );
+            details.push(`✅ Resume analysis saved with ID: ${resumeRecord.id}`);
+
+            details.push('🎉 All database operations successful!');
+            setResults(prev => ({ ...prev, details: [...prev.details, ...details] }));
+            toast.success("Database operations test completed successfully!");
+
+        } catch (error) {
+            details.push(`❌ Database operation failed: ${error}`);
+            setResults(prev => ({ ...prev, details: [...prev.details, ...details] }));
+            toast.error("Database operations test failed");
+        } finally {
+            setTesting(false);
+        }
+    };
+
     const getStatusIcon = (status: 'pending' | 'success' | 'error') => {
         switch (status) {
             case 'pending': return <Loader2 className="h-4 w-4 animate-spin" />;
@@ -140,6 +252,14 @@ export function ConnectionDebugger() {
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
+                                {getStatusIcon(results.database)}
+                                <span className="font-medium">Database Connection</span>
+                            </div>
+                            {getStatusBadge(results.database)}
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
                                 {getStatusIcon(results.http)}
                                 <span className="font-medium">HTTP Connection</span>
                             </div>
@@ -153,6 +273,27 @@ export function ConnectionDebugger() {
                             </div>
                             {getStatusBadge(results.websocket)}
                         </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                        <Button
+                            onClick={testDatabaseOperations}
+                            disabled={testing}
+                            variant="outline"
+                            className="flex-1"
+                        >
+                            {testing ? (
+                                <>
+                                    <Database className="h-4 w-4 mr-2" />
+                                    Testing DB...
+                                </>
+                            ) : (
+                                <>
+                                    <Database className="h-4 w-4 mr-2" />
+                                    Test Database
+                                </>
+                            )}
+                        </Button>
                     </div>
 
                     {results.details.length > 0 && (
