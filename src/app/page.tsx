@@ -169,6 +169,19 @@ export default function HomePage() {
             </Card>
           </div>
 
+          {/* Browse Jobs Button */}
+          <div className="mb-16">
+            <Link href="/jobs">
+              <Button variant="outline" size="lg" className="border-2 border-primary hover:bg-primary hover:text-primary-foreground">
+                <Briefcase className="mr-2 h-5 w-5" />
+                Browse Jobs
+              </Button>
+            </Link>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+              Explore available opportunities without signing up
+            </p>
+          </div>
+
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
             {stats.map((stat, index) => (

@@ -87,12 +87,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const signOut = async () => {
         try {
-            // Clear cookies
-            if (typeof window !== 'undefined') {
-                document.cookie = 'sb-access-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-                document.cookie = 'sb-refresh-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-            }
-
             const { error } = await supabase.auth.signOut();
             if (error) {
                 console.error('Error signing out:', error);
@@ -128,9 +122,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         // Create user profile if it doesn't exist
                         console.log('No user profile found, creating one...');
                         const userName = session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User';
-                        const userRole = session.user.user_metadata?.role || 'candidate';
+                        const userRole = session.user.user_metadata?.role || 'candidate'; // Use role from metadata, default to candidate
 
-                        // First, update the auth user metadata
+                        // First, update the auth user metadata with the name and role
                         const { error: updateError } = await supabase.auth.updateUser({
                             data: {
                                 name: userName,
@@ -158,12 +152,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                             setUser(newUserData);
                         }
                     }
-                } else {
-                    // Clear cookies if no session
-                    if (typeof window !== 'undefined') {
-                        document.cookie = 'sb-access-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-                        document.cookie = 'sb-refresh-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-                    }
                 }
             } catch (error) {
                 console.error('Error getting initial session:', error);
@@ -174,7 +162,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         getInitialSession();
 
-        // Listen for auth changes with improved session persistence
+        // Listen for auth changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             async (event, session) => {
                 console.log('Auth state changed:', event, session?.user?.email);
@@ -199,8 +187,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         document.cookie = `sb-access-token=${session.access_token}; path=/; max-age=86400; secure; samesite=strict`;
                         document.cookie = `sb-refresh-token=${session.refresh_token}; path=/; max-age=604800; secure; samesite=strict`;
                     }
-                    // Optionally refresh user data to ensure it's up to date
-                    await refreshUser();
                 }
             }
         );
@@ -212,6 +198,56 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return (
         <AuthContext.Provider value={{ user, loading, signOut, refreshUser }}>
+            {children}
+        </AuthContext.Provider>
+    );
+}
+
+export function useAuth() {
+    const context = useContext(AuthContext);
+    if (context === undefined) {
+        throw new Error('useAuth must be used within an AuthProvider');
+    }
+    return context;
+}
+                            console.warn('Could not update auth user metadata:', updateError.message);
+                        }
+
+                        // Then create user profile in our users table
+                        const { data: newUserData, error: createError } = await supabase
+                            .from('users')
+                            .insert({
+                                id: session.user.id,
+                                email: session.user.email || '',
+                                name: userName,
+                                role: userRole,
+                            })
+                            .select()
+                            .single();
+
+                        if (!createError && newUserData) {
+                            setUser(newUserData);
+                        }
+                    }
+                } else if (event === 'SIGNED_OUT') {
+                    setUser(null);
+                }
+                setLoading(false);
+            }
+        );
+
+        return () => subscription.unsubscribe();
+    }, []);
+
+    const value = {
+        user,
+        loading,
+        signOut,
+        refreshUser,
+    };
+
+    return (
+        <AuthContext.Provider value={value}>
             {children}
         </AuthContext.Provider>
     );

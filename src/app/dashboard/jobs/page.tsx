@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AppSidebar } from "@/components/app-sidebar";
 import {
     Breadcrumb,
@@ -19,6 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { JobApplicationModal } from "@/components/job-application-modal";
+import { getJobUrl } from "@/lib/job-service";
 import {
     MapPin,
     Calendar,
@@ -49,7 +51,8 @@ type Job = {
     expiry?: string;
 };
 
-export default function JobsListPage() {
+export default function JobsPage() {
+    const router = useRouter();
     const [jobs, setJobs] = useState<Job[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -204,7 +207,10 @@ export default function JobsListPage() {
                                     <CardHeader className="pb-3">
                                         <div className="flex items-start justify-between">
                                             <div className="flex-1">
-                                                <CardTitle className="text-xl font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                                                <CardTitle
+                                                    className="text-xl font-semibold text-gray-900 group-hover:text-blue-600 transition-colors cursor-pointer"
+                                                    onClick={() => router.push(getJobUrl(job))}
+                                                >
                                                     {job.title}
                                                 </CardTitle>
                                                 <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
@@ -262,10 +268,7 @@ export default function JobsListPage() {
                                                 variant="outline"
                                                 size="sm"
                                                 className="flex-1"
-                                                onClick={() => {
-                                                    // Could open job details modal or navigate to job page
-                                                    toast.info("Job details view coming soon!");
-                                                }}
+                                                onClick={() => router.push(getJobUrl(job))}
                                             >
                                                 <Eye className="h-4 w-4 mr-2" />
                                                 View Details

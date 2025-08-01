@@ -20,7 +20,8 @@ import {
     User,
     Settings,
     Menu,
-    X
+    X,
+    LogIn
 } from 'lucide-react';
 
 interface NavigationItem {
@@ -57,8 +58,10 @@ export function AppNavigation({ items, title, subtitle }: AppNavigationProps) {
 
     const roleIcon = user?.role === 'recruiter' ? (
         <Building className="h-4 w-4" />
-    ) : (
+    ) : user?.role === 'candidate' ? (
         <UserCheck className="h-4 w-4" />
+    ) : (
+        <Building className="h-4 w-4" />
     );
 
     return (
@@ -115,42 +118,59 @@ export function AppNavigation({ items, title, subtitle }: AppNavigationProps) {
                             </Button>
                         </div>
 
-                        {/* User dropdown */}
+                        {/* User dropdown or Sign in buttons */}
                         <div className="hidden md:flex md:items-center md:space-x-4">
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" className="flex items-center space-x-2">
-                                        <Avatar className="h-8 w-8">
-                                            <AvatarFallback className="bg-primary/10 text-primary">
-                                                {getUserInitials(user?.name)}
-                                            </AvatarFallback>
-                                        </Avatar>
-                                        <div className="text-left">
-                                            <p className="text-sm font-medium text-gray-900 dark:text-white">
-                                                {user?.name || 'User'}
-                                            </p>
-                                            <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
-                                                {user?.role}
-                                            </p>
-                                        </div>
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-56">
-                                    <DropdownMenuItem>
-                                        <User className="mr-2 h-4 w-4" />
-                                        Profile
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem>
-                                        <Settings className="mr-2 h-4 w-4" />
-                                        Settings
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem onClick={handleSignOut}>
-                                        <LogOut className="mr-2 h-4 w-4" />
-                                        Sign out
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
+                            {user ? (
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" className="flex items-center space-x-2">
+                                            <Avatar className="h-8 w-8">
+                                                <AvatarFallback className="bg-primary/10 text-primary">
+                                                    {getUserInitials(user?.name)}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                            <div className="text-left">
+                                                <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                                    {user?.name || 'User'}
+                                                </p>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                                                    {user?.role}
+                                                </p>
+                                            </div>
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-56">
+                                        <DropdownMenuItem>
+                                            <User className="mr-2 h-4 w-4" />
+                                            Profile
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem>
+                                            <Settings className="mr-2 h-4 w-4" />
+                                            Settings
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem onClick={handleSignOut}>
+                                            <LogOut className="mr-2 h-4 w-4" />
+                                            Sign out
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            ) : (
+                                <div className="flex items-center space-x-2">
+                                    <Link href="/auth/signin">
+                                        <Button variant="outline" size="sm">
+                                            <LogIn className="mr-2 h-4 w-4" />
+                                            Sign In
+                                        </Button>
+                                    </Link>
+                                    <Link href="/recruiters/auth/signin">
+                                        <Button size="sm">
+                                            <Building className="mr-2 h-4 w-4" />
+                                            Recruiter
+                                        </Button>
+                                    </Link>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -173,38 +193,57 @@ export function AppNavigation({ items, title, subtitle }: AppNavigationProps) {
 
                             {/* Mobile user section */}
                             <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
-                                <div className="flex items-center px-3 py-2">
-                                    <Avatar className="h-10 w-10">
-                                        <AvatarFallback className="bg-primary/10 text-primary">
-                                            {getUserInitials(user?.name)}
-                                        </AvatarFallback>
-                                    </Avatar>
-                                    <div className="ml-3">
-                                        <p className="text-base font-medium text-gray-900 dark:text-white">
-                                            {user?.name || 'User'}
-                                        </p>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">
-                                            {user?.role}
-                                        </p>
+                                {user ? (
+                                    <>
+                                        <div className="flex items-center px-3 py-2">
+                                            <Avatar className="h-10 w-10">
+                                                <AvatarFallback className="bg-primary/10 text-primary">
+                                                    {getUserInitials(user?.name)}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                            <div className="ml-3">
+                                                <p className="text-base font-medium text-gray-900 dark:text-white">
+                                                    {user?.name || 'User'}
+                                                </p>
+                                                <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">
+                                                    {user?.role}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="mt-3 space-y-1">
+                                            <button className="flex items-center w-full px-3 py-2 text-base font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition-colors">
+                                                <User className="mr-3 h-5 w-5" />
+                                                Profile
+                                            </button>
+                                            <button className="flex items-center w-full px-3 py-2 text-base font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition-colors">
+                                                <Settings className="mr-3 h-5 w-5" />
+                                                Settings
+                                            </button>
+                                            <button
+                                                onClick={handleSignOut}
+                                                className="flex items-center w-full px-3 py-2 text-base font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition-colors"
+                                            >
+                                                <LogOut className="mr-3 h-5 w-5" />
+                                                Sign out
+                                            </button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="space-y-2 px-3">
+                                        <Link href="/auth/signin" onClick={() => setIsMobileMenuOpen(false)}>
+                                            <Button variant="outline" className="w-full justify-start">
+                                                <LogIn className="mr-2 h-4 w-4" />
+                                                Sign in as Candidate
+                                            </Button>
+                                        </Link>
+                                        <Link href="/recruiters/auth/signin" onClick={() => setIsMobileMenuOpen(false)}>
+                                            <Button className="w-full justify-start">
+                                                <Building className="mr-2 h-4 w-4" />
+                                                Sign in as Recruiter
+                                            </Button>
+                                        </Link>
                                     </div>
-                                </div>
-                                <div className="mt-3 space-y-1">
-                                    <button className="flex items-center w-full px-3 py-2 text-base font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition-colors">
-                                        <User className="mr-3 h-5 w-5" />
-                                        Profile
-                                    </button>
-                                    <button className="flex items-center w-full px-3 py-2 text-base font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition-colors">
-                                        <Settings className="mr-3 h-5 w-5" />
-                                        Settings
-                                    </button>
-                                    <button
-                                        onClick={handleSignOut}
-                                        className="flex items-center w-full px-3 py-2 text-base font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition-colors"
-                                    >
-                                        <LogOut className="mr-3 h-5 w-5" />
-                                        Sign out
-                                    </button>
-                                </div>
+                                )}
                             </div>
                         </div>
                     </div>

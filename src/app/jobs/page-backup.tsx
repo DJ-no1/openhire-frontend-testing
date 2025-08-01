@@ -1,28 +1,78 @@
-"use client";
-import { Card } from "@/components/ui/card";
-import { useEffect, useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { JobApplicationModal } from "@/components/job-application-modal";
-import { type Job as JobType } from "@/lib/api";
-import { getJobUrl } from "@/lib/job-service";
+'use client';
 
-type Job = {
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { ProtectedRoute } from '@/components/protected-route';
+import { AppNavigation } from '@/components/app-navigation';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/hooks/use-auth';
+import { jobService, Job as JobType, getJobUrl } from '@/lib/job-service';
+import { toast } from 'sonner';
+import {
+    Briefcase,
+    Users,
+    FileText,
+    Search,
+    Filter,
+    Calendar,
+    MapPin,
+    DollarSign,
+    Clock,
+    Eye,
+    MoreHorizontal,
+    Loader2,
+    Building,
+    CheckCircle,
+    XCircle,
+    AlertCircle,
+    Bookmark,
+    BookmarkCheck
+} from 'lucide-react';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+
+const navigationItems = [
+    {
+        label: 'Dashboard',
+        href: '/dashboard',
+        icon: <Briefcase className="h-4 w-4" />
+    },
+    {
+        label: 'Jobs',
+        href: '/jobs',
+        icon: <Briefcase className="h-4 w-4" />
+    },
+    {
+        label: 'Applications',
+        href: '/dashboard/application',
+        icon: <FileText className="h-4 w-4" />
+    },
+];
+
+interface Job {
     id: string;
-    recruiter_id?: string;
     title: string;
-    description?: string;
+    company: string;
+    location: string;
     salary?: string;
-    skills?: string;
+    skills: string[];
+    status: 'active' | 'inactive' | 'expired';
+    created_at: string;
+    end_date: string;
+    applications_count: number;
+    interview_duration: string;
+    description: string;
     job_type?: string;
-    created_at?: string;
-    end_date?: string;
-    job_link?: string;
-    company?: string;
-    location?: string;
-    status?: string;
-    expiry?: string;
-};
+    recruiter_id?: string;
+}
 
 export default function ListJobPage() {
     const [jobs, setJobs] = useState<Job[]>([]);
