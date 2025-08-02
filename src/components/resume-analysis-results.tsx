@@ -46,8 +46,8 @@ interface AnalysisResult {
 }
 
 interface ReviewResponse {
-    jd: string;
-    resume: string;
+    jd: string | any; // Allow both string and object formats
+    resume: string | any; // Allow both string and object formats
     analysis: AnalysisResult;
 }
 
@@ -81,6 +81,31 @@ const dimensionDescriptions: Record<string, string> = {
 };
 
 export function ResumeAnalysisResults({ analysis, onNewAnalysis }: ResumeAnalysisResultsProps) {
+    // Debug logging
+    console.log('ResumeAnalysisResults received analysis:', analysis);
+    console.log('Analysis JD type:', typeof analysis.jd);
+    console.log('Analysis JD value:', analysis.jd);
+
+    // Safety check for analysis data
+    if (!analysis || !analysis.analysis) {
+        console.error('Invalid analysis data:', analysis);
+        return (
+            <div className="text-center p-8">
+                <p className="text-red-600">Invalid analysis data received</p>
+            </div>
+        );
+    }
+
+    // Ensure dimension_breakdown exists and is an object
+    if (!analysis.analysis.dimension_breakdown || typeof analysis.analysis.dimension_breakdown !== 'object') {
+        console.error('Invalid dimension_breakdown:', analysis.analysis.dimension_breakdown);
+        return (
+            <div className="text-center p-8">
+                <p className="text-red-600">Analysis dimension data is missing or corrupted</p>
+            </div>
+        );
+    }
+
     const getScoreColor = (score: number) => {
         if (score >= 80) return "text-green-600";
         if (score >= 60) return "text-yellow-600";
@@ -136,41 +161,41 @@ export function ResumeAnalysisResults({ analysis, onNewAnalysis }: ResumeAnalysi
                     <div className="grid md:grid-cols-3 gap-6">
                         {/* Overall Score */}
                         <div className="text-center">
-                            <div className={`text-6xl font-bold ${getScoreColor(analysis.analysis.overall_score)} mb-2`}>
-                                {Math.round(analysis.analysis.overall_score)}
+                            <div className={`text-6xl font-bold ${getScoreColor(analysis.analysis.overall_score || 0)} mb-2`}>
+                                {Math.round(analysis.analysis.overall_score || 0)}
                             </div>
                             <div className="text-lg font-medium mb-1">Overall Score</div>
                             <Badge variant="secondary" className="text-xs">
-                                {getScoreLabel(analysis.analysis.overall_score)}
+                                {getScoreLabel(analysis.analysis.overall_score || 0)}
                             </Badge>
                         </div>
 
                         {/* Status Indicators */}
                         <div className="space-y-3">
                             <div className="flex items-center gap-2">
-                                {analysis.analysis.passed_hard_filters ? (
+                                {(analysis.analysis.passed_hard_filters ?? true) ? (
                                     <CheckCircle className="h-5 w-5 text-green-600" />
                                 ) : (
                                     <XCircle className="h-5 w-5 text-red-600" />
                                 )}
-                                <span className={`font-medium ${analysis.analysis.passed_hard_filters ? 'text-green-600' : 'text-red-600'}`}>
-                                    {analysis.analysis.passed_hard_filters ? 'Passed Hard Filters' : 'Failed Hard Filters'}
+                                <span className={`font-medium ${(analysis.analysis.passed_hard_filters ?? true) ? 'text-green-600' : 'text-red-600'}`}>
+                                    {(analysis.analysis.passed_hard_filters ?? true) ? 'Passed Hard Filters' : 'Failed Hard Filters'}
                                 </span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <Brain className="h-5 w-5 text-blue-600" />
                                 <span className="font-medium">
-                                    AI Confidence: {Math.round(analysis.analysis.confidence * 100)}%
+                                    AI Confidence: {Math.round((analysis.analysis.confidence || 0) * 100)}%
                                 </span>
                             </div>
                             <div className="flex items-center gap-2">
-                                {analysis.analysis.risk_flags.length === 0 ? (
+                                {(analysis.analysis.risk_flags && analysis.analysis.risk_flags.length === 0) ? (
                                     <CheckCircle className="h-5 w-5 text-green-600" />
                                 ) : (
                                     <AlertTriangle className="h-5 w-5 text-yellow-600" />
                                 )}
                                 <span className="font-medium">
-                                    {analysis.analysis.risk_flags.length} Risk Flag{analysis.analysis.risk_flags.length !== 1 ? 's' : ''}
+                                    {analysis.analysis.risk_flags?.length || 0} Risk Flag{(analysis.analysis.risk_flags?.length || 0) !== 1 ? 's' : ''}
                                 </span>
                             </div>
                         </div>
@@ -216,7 +241,12 @@ export function ResumeAnalysisResults({ analysis, onNewAnalysis }: ResumeAnalysi
                 </CardHeader>
                 <CardContent>
                     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                        {Object.entries(analysis.analysis.dimension_breakdown).map(([key, dimension]) => {
+                        {analysis.analysis.dimension_breakdown && Object.entries(analysis.analysis.dimension_breakdown).map(([key, dimension]) => {
+                            // Safety check for dimension object
+                            if (!dimension || typeof dimension !== 'object') {
+                                return null;
+                            }
+
                             const Icon = dimensionIcons[key] || Target;
                             return (
                                 <Card key={key} className="border-2 hover:shadow-md transition-shadow">
@@ -229,11 +259,11 @@ export function ResumeAnalysisResults({ analysis, onNewAnalysis }: ResumeAnalysi
                                                 </h4>
                                             </div>
                                             <div className="text-right">
-                                                <div className={`text-2xl font-bold ${getScoreColor(dimension.score)}`}>
-                                                    {Math.round(dimension.score)}
+                                                <div className={`text-2xl font-bold ${getScoreColor(dimension.score || 0)}`}>
+                                                    {Math.round(dimension.score || 0)}
                                                 </div>
                                                 <div className="text-xs text-muted-foreground">
-                                                    Weight: {Math.round(dimension.weight * 100)}%
+                                                    Weight: {Math.round((dimension.weight || 0) * 100)}%
                                                 </div>
                                             </div>
                                         </div>
@@ -241,16 +271,16 @@ export function ResumeAnalysisResults({ analysis, onNewAnalysis }: ResumeAnalysi
                                     <CardContent className="pt-0 space-y-3">
                                         <div className="w-full bg-gray-200 rounded-full h-2">
                                             <div
-                                                className={`h-2 rounded-full transition-all duration-500 ${getProgressColor(dimension.score)}`}
-                                                style={{ width: `${dimension.score}%` }}
+                                                className={`h-2 rounded-full transition-all duration-500 ${getProgressColor(dimension.score || 0)}`}
+                                                style={{ width: `${dimension.score || 0}%` }}
                                             />
                                         </div>
 
                                         <p className="text-xs text-muted-foreground">
-                                            {dimensionDescriptions[key]}
+                                            {dimensionDescriptions[key] || 'No description available'}
                                         </p>
 
-                                        {dimension.evidence.length > 0 && (
+                                        {(dimension.evidence && dimension.evidence.length > 0) && (
                                             <div className="space-y-1">
                                                 <div className="text-xs font-medium text-green-700">Evidence:</div>
                                                 <ul className="text-xs space-y-1 text-muted-foreground">
@@ -279,7 +309,7 @@ export function ResumeAnalysisResults({ analysis, onNewAnalysis }: ResumeAnalysi
             {/* Alerts Section */}
             <div className="grid gap-4 md:grid-cols-2">
                 {/* Risk Flags */}
-                {analysis.analysis.risk_flags.length > 0 && (
+                {(analysis.analysis.risk_flags && analysis.analysis.risk_flags.length > 0) && (
                     <Card className="border-yellow-200 bg-yellow-50">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2 text-yellow-800">
@@ -301,7 +331,7 @@ export function ResumeAnalysisResults({ analysis, onNewAnalysis }: ResumeAnalysi
                 )}
 
                 {/* Hard Filter Failures */}
-                {analysis.analysis.hard_filter_failures.length > 0 && (
+                {(analysis.analysis.hard_filter_failures && analysis.analysis.hard_filter_failures.length > 0) && (
                     <Card className="border-red-200 bg-red-50">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2 text-red-800">
@@ -323,22 +353,23 @@ export function ResumeAnalysisResults({ analysis, onNewAnalysis }: ResumeAnalysi
                 )}
 
                 {/* Success Message if no issues */}
-                {analysis.analysis.risk_flags.length === 0 && analysis.analysis.hard_filter_failures.length === 0 && (
-                    <Card className="border-green-200 bg-green-50 md:col-span-2">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2 text-green-800">
-                                <CheckCircle className="h-5 w-5" />
-                                All Checks Passed!
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-green-800 text-sm">
-                                Great news! This resume passed all hard filters and has no significant risk flags.
-                                The candidate appears to be a strong match for the position.
-                            </p>
-                        </CardContent>
-                    </Card>
-                )}
+                {(!analysis.analysis.risk_flags || analysis.analysis.risk_flags.length === 0) &&
+                    (!analysis.analysis.hard_filter_failures || analysis.analysis.hard_filter_failures.length === 0) && (
+                        <Card className="border-green-200 bg-green-50 md:col-span-2">
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2 text-green-800">
+                                    <CheckCircle className="h-5 w-5" />
+                                    All Checks Passed!
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-green-800 text-sm">
+                                    Great news! This resume passed all hard filters and has no significant risk flags.
+                                    The candidate appears to be a strong match for the position.
+                                </p>
+                            </CardContent>
+                        </Card>
+                    )}
             </div>
 
             {/* Resume and Job Description */}
@@ -352,7 +383,7 @@ export function ResumeAnalysisResults({ analysis, onNewAnalysis }: ResumeAnalysi
                     </CardHeader>
                     <CardContent>
                         <div className="max-h-96 overflow-y-auto bg-muted p-4 rounded text-sm whitespace-pre-wrap font-mono">
-                            {analysis.resume}
+                            {typeof analysis.resume === 'string' ? analysis.resume : JSON.stringify(analysis.resume, null, 2)}
                         </div>
                     </CardContent>
                 </Card>
@@ -366,7 +397,50 @@ export function ResumeAnalysisResults({ analysis, onNewAnalysis }: ResumeAnalysi
                     </CardHeader>
                     <CardContent>
                         <div className="max-h-96 overflow-y-auto bg-muted p-4 rounded text-sm whitespace-pre-wrap">
-                            {analysis.jd}
+                            {(() => {
+                                // Handle both string and object formats
+                                try {
+                                    if (typeof analysis.jd === 'string') {
+                                        return analysis.jd;
+                                    } else if (typeof analysis.jd === 'object' && analysis.jd) {
+                                        // If it's an object, render it in a structured way
+                                        const jdObj = analysis.jd as any;
+                                        return (
+                                            <div className="space-y-4">
+                                                {jdObj.requirements && (
+                                                    <div>
+                                                        <h4 className="font-semibold mb-2">Requirements:</h4>
+                                                        <p>{Array.isArray(jdObj.requirements) ? jdObj.requirements.join('\n') : String(jdObj.requirements)}</p>
+                                                    </div>
+                                                )}
+                                                {jdObj.responsibilities && (
+                                                    <div>
+                                                        <h4 className="font-semibold mb-2">Responsibilities:</h4>
+                                                        <p>{Array.isArray(jdObj.responsibilities) ? jdObj.responsibilities.join('\n') : String(jdObj.responsibilities)}</p>
+                                                    </div>
+                                                )}
+                                                {jdObj.benefits && (
+                                                    <div>
+                                                        <h4 className="font-semibold mb-2">Benefits:</h4>
+                                                        <p>{Array.isArray(jdObj.benefits) ? jdObj.benefits.join('\n') : String(jdObj.benefits)}</p>
+                                                    </div>
+                                                )}
+                                                {jdObj.experience && (
+                                                    <div>
+                                                        <h4 className="font-semibold mb-2">Experience:</h4>
+                                                        <p>{String(jdObj.experience)}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    } else {
+                                        return "No job description available";
+                                    }
+                                } catch (error) {
+                                    console.error('Error rendering job description:', error);
+                                    return "Error displaying job description";
+                                }
+                            })()}
                         </div>
                     </CardContent>
                 </Card>

@@ -1,52 +1,39 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { AppSidebar } from "@/components/app-sidebar";
+import Link from "next/link";
 import {
-    Breadcrumb,
-    BreadcrumbItem,
-    BreadcrumbLink,
-    BreadcrumbList,
-    BreadcrumbPage,
-    BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { Separator } from "@/components/ui/separator";
-import {
-    SidebarInset,
-    SidebarProvider,
-    SidebarTrigger,
-} from "@/components/ui/sidebar";
+    ArrowLeft,
+    Download,
+    Share,
+    RefreshCw,
+    Loader2,
+    AlertCircle,
+    TrendingUp,
+    Building,
+    MapPin,
+    Briefcase,
+    DollarSign,
+    Calendar,
+    FileText,
+    Clock,
+    User,
+    Brain,
+    CheckCircle
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ResumeAnalysisResults } from "@/components/resume-analysis-results";
-import {
-    DatabaseService,
-    getApplicationStatusColor,
-    getScoreBadgeColor,
-    type DatabaseApplication,
-    type DatabaseUserResume
-} from "@/lib/database";
-import {
-    ArrowLeft,
-    Calendar,
-    Building,
-    TrendingUp,
-    FileText,
-    MapPin,
-    DollarSign,
-    Clock,
-    User,
-    Briefcase,
-    AlertCircle,
-    Loader2,
-    Download,
-    Share,
-    RefreshCw
-} from "lucide-react";
 import { toast } from "sonner";
-import Link from "next/link";
-import { type ReviewResponse } from "@/lib/api";
+import { DatabaseService, type DatabaseApplication, type DatabaseUserResume } from "@/lib/database";
+import { ResumeAnalysisResults } from "@/components/resume-analysis-results";
+
+// Define ReviewResponse type inline since we can't find the module
+interface ReviewResponse {
+    jd: string;
+    resume: string;
+    analysis: any;
+}
 
 export default function ApplicationAnalysisPage() {
     const { id } = useParams();
@@ -65,27 +52,103 @@ export default function ApplicationAnalysisPage() {
         setLoading(true);
         setError(null);
         try {
+            console.log('Fetching application data for ID:', applicationId);
+
             // Fetch application details
             const appData = await DatabaseService.getApplicationWithDetails(applicationId);
+            console.log('Application data received:', appData);
+
             setApplication(appData);
 
             // Get the resume analysis data
             const resume = appData.user_resume?.[0];
             if (resume?.scoring_details) {
+                // Handle job description - it might be a string or object
+                let jobDescription = "";
+                const jdFromScoring = resume.scoring_details.jd;
+                const jdFromJob = appData.job?.description;
+
+                console.log('JD from scoring:', jdFromScoring, 'Type:', typeof jdFromScoring);
+                console.log('JD from job:', jdFromJob, 'Type:', typeof jdFromJob);
+
+                if (typeof jdFromScoring === 'string') {
+                    jobDescription = jdFromScoring;
+                } else if (typeof jdFromJob === 'string') {
+                    jobDescription = jdFromJob;
+                } else if (typeof jdFromScoring === 'object' && jdFromScoring) {
+                    // If it's an object, convert to structured text format
+                    const jdObj = jdFromScoring as any;
+                    let structuredText = "";
+
+                    if (jdObj.intro) structuredText += `INTRODUCTION:\n${jdObj.intro}\n\n`;
+                    if (jdObj.requirements) {
+                        structuredText += `REQUIREMENTS:\n`;
+                        if (Array.isArray(jdObj.requirements)) {
+                            structuredText += jdObj.requirements.map((req: any) => `• ${req}`).join('\n');
+                        } else {
+                            structuredText += jdObj.requirements;
+                        }
+                        structuredText += '\n\n';
+                    }
+                    if (jdObj.responsibilities) {
+                        structuredText += `RESPONSIBILITIES:\n`;
+                        if (Array.isArray(jdObj.responsibilities)) {
+                            structuredText += jdObj.responsibilities.map((resp: any) => `• ${resp}`).join('\n');
+                        } else {
+                            structuredText += jdObj.responsibilities;
+                        }
+                        structuredText += '\n\n';
+                    }
+                    if (jdObj.benefits) {
+                        structuredText += `BENEFITS:\n`;
+                        if (Array.isArray(jdObj.benefits)) {
+                            structuredText += jdObj.benefits.map((benefit: any) => `• ${benefit}`).join('\n');
+                        } else {
+                            structuredText += jdObj.benefits;
+                        }
+                        structuredText += '\n\n';
+                    }
+                    if (jdObj.experience) {
+                        structuredText += `EXPERIENCE REQUIRED:\n${jdObj.experience}\n\n`;
+                    }
+
+                    jobDescription = structuredText || JSON.stringify(jdFromScoring, null, 2);
+                } else if (typeof jdFromJob === 'object' && jdFromJob) {
+                    // If it's an object, convert to readable format
+                    jobDescription = JSON.stringify(jdFromJob, null, 2);
+                } else {
+                    jobDescription = "No job description available";
+                }
+
+                console.log('Final jobDescription:', jobDescription, 'Type:', typeof jobDescription);
+
                 // Extract the stored analysis data
                 const analysisResult: ReviewResponse = {
-                    jd: resume.scoring_details.jd || appData.job?.description || "",
+                    jd: jobDescription, // Ensure this is always a string
                     resume: resume.scoring_details.resume || "",
                     analysis: resume.scoring_details.analysis
                 };
                 setAnalysisData(analysisResult);
+                console.log('Analysis data loaded:', analysisResult);
+            } else {
+                console.log('No resume analysis data found');
             }
 
             toast.success("Application data loaded successfully");
         } catch (err) {
+            console.error('Error fetching application data:', err);
             const errorMessage = (err as Error).message;
-            setError(errorMessage);
-            toast.error(`Failed to load application: ${errorMessage}`);
+
+            // Provide more specific error messages
+            let userFriendlyMessage = errorMessage;
+            if (errorMessage.includes('relationship')) {
+                userFriendlyMessage = 'Database relationship error. This might be due to data inconsistency. Please try refreshing or contact support.';
+            } else if (errorMessage.includes('not found')) {
+                userFriendlyMessage = 'Application not found. It may have been deleted or you may not have permission to view it.';
+            }
+
+            setError(userFriendlyMessage);
+            toast.error(`Failed to load application: ${userFriendlyMessage}`);
         } finally {
             setLoading(false);
         }
@@ -131,105 +194,92 @@ export default function ApplicationAnalysisPage() {
 
     if (loading) {
         return (
-            <SidebarProvider>
-                <AppSidebar />
-                <SidebarInset>
-                    <div className="flex items-center justify-center min-h-screen">
-                        <div className="text-center space-y-4">
-                            <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto" />
-                            <div>
-                                <h3 className="text-lg font-medium">Loading Application Analysis</h3>
-                                <p className="text-muted-foreground">Retrieving your application and AI analysis data...</p>
-                            </div>
-                        </div>
+            <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+                <div className="text-center space-y-4">
+                    <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto" />
+                    <div>
+                        <h3 className="text-lg font-medium">Loading Application Analysis</h3>
+                        <p className="text-muted-foreground">Retrieving your application and AI analysis data...</p>
                     </div>
-                </SidebarInset>
-            </SidebarProvider>
+                </div>
+            </div>
         );
     }
 
     if (error || !application) {
         return (
-            <SidebarProvider>
-                <AppSidebar />
-                <SidebarInset>
-                    <div className="flex items-center justify-center min-h-screen">
-                        <Card className="max-w-lg w-full border-red-200 bg-red-50">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2 text-red-800">
-                                    <AlertCircle className="h-6 w-6" />
-                                    Error Loading Application
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <p className="text-red-700">
-                                    {error || "Application not found or you don't have permission to view it."}
-                                </p>
-                                <div className="flex gap-2">
-                                    <Button variant="outline" onClick={handleRefresh}>
-                                        <RefreshCw className="mr-2 h-4 w-4" />
-                                        Try Again
-                                    </Button>
-                                    <Link href="/dashboard/application">
-                                        <Button>
-                                            <ArrowLeft className="mr-2 h-4 w-4" />
-                                            Back to Applications
-                                        </Button>
-                                    </Link>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
-                </SidebarInset>
-            </SidebarProvider>
+            <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+                <Card className="max-w-lg w-full border-red-200 bg-red-50">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-red-800">
+                            <AlertCircle className="h-6 w-6" />
+                            Error Loading Application
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <p className="text-red-700">
+                            {error || "Application not found or you don't have permission to view it."}
+                        </p>
+                        <div className="flex gap-2">
+                            <Button variant="outline" onClick={handleRefresh}>
+                                <RefreshCw className="mr-2 h-4 w-4" />
+                                Try Again
+                            </Button>
+                            <Link href="/dashboard/application">
+                                <Button>
+                                    <ArrowLeft className="mr-2 h-4 w-4" />
+                                    Back to Applications
+                                </Button>
+                            </Link>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
         );
     }
+
+    const getApplicationStatusColor = (status: string) => {
+        switch (status.toLowerCase()) {
+            case 'pending':
+                return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+            case 'reviewed':
+                return 'bg-blue-100 text-blue-800 border-blue-300';
+            case 'interview':
+                return 'bg-purple-100 text-purple-800 border-purple-300';
+            case 'accepted':
+                return 'bg-green-100 text-green-800 border-green-300';
+            case 'rejected':
+                return 'bg-red-100 text-red-800 border-red-300';
+            default:
+                return 'bg-gray-100 text-gray-800 border-gray-300';
+        }
+    };
 
     const resume = application.user_resume?.[0];
 
     return (
-        <SidebarProvider>
-            <AppSidebar />
-            <SidebarInset>
-                <header className="flex h-16 shrink-0 items-center gap-2">
-                    <div className="flex items-center gap-2 px-4">
-                        <SidebarTrigger className="-ml-1" />
-                        <Separator
-                            orientation="vertical"
-                            className="mr-2 data-[orientation=vertical]:h-4"
-                        />
-                        <Breadcrumb>
-                            <BreadcrumbList>
-                                <BreadcrumbItem className="hidden md:block">
-                                    <BreadcrumbLink href="/">
-                                        OpenHire
-                                    </BreadcrumbLink>
-                                </BreadcrumbItem>
-                                <BreadcrumbSeparator className="hidden md:block" />
-                                <BreadcrumbItem className="hidden md:block">
-                                    <BreadcrumbLink href="/dashboard/application">
-                                        Applications
-                                    </BreadcrumbLink>
-                                </BreadcrumbItem>
-                                <BreadcrumbSeparator className="hidden md:block" />
-                                <BreadcrumbItem>
-                                    <BreadcrumbPage>Analysis Details</BreadcrumbPage>
-                                </BreadcrumbItem>
-                            </BreadcrumbList>
-                        </Breadcrumb>
-                    </div>
-                </header>
-
-                <div className="flex flex-1 flex-col gap-6 p-4 pt-0">
-                    {/* Header Actions */}
-                    <div className="flex items-center justify-between">
-                        <Link href="/dashboard/application">
-                            <Button variant="outline" size="sm">
-                                <ArrowLeft className="mr-2 h-4 w-4" />
-                                Back to Applications
-                            </Button>
-                        </Link>
-                        <div className="flex gap-2">
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+            {/* Fixed Header */}
+            <header className="bg-white shadow-sm border-b sticky top-0 z-10">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex items-center justify-between h-16">
+                        <div className="flex items-center gap-4">
+                            <Link href="/dashboard/application">
+                                <Button variant="outline" size="sm">
+                                    <ArrowLeft className="mr-2 h-4 w-4" />
+                                    Back to Applications
+                                </Button>
+                            </Link>
+                            <div>
+                                <h1 className="text-xl font-semibold text-gray-900">
+                                    Resume Analysis Report
+                                </h1>
+                                <p className="text-sm text-gray-600">
+                                    {application.job?.title || "Unknown Position"}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2">
                             <Button variant="outline" size="sm" onClick={handleRefresh}>
                                 <RefreshCw className="mr-2 h-4 w-4" />
                                 Refresh
@@ -244,142 +294,125 @@ export default function ApplicationAnalysisPage() {
                             </Button>
                         </div>
                     </div>
-
-                    {/* Application Overview */}
-                    <Card>
-                        <CardHeader>
-                            <div className="flex items-start justify-between">
-                                <div>
-                                    <CardTitle className="text-2xl text-gray-900">
-                                        {application.job?.title || "Unknown Position"}
-                                    </CardTitle>
-                                    <div className="flex items-center gap-4 mt-2 text-muted-foreground">
-                                        <div className="flex items-center gap-1">
-                                            <Building className="h-4 w-4" />
-                                            <span>{application.job?.job_type || "Not specified"}</span>
-                                        </div>
-                                        {application.job?.salary && (
-                                            <div className="flex items-center gap-1">
-                                                <DollarSign className="h-4 w-4" />
-                                                <span>{formatSalary(application.job.salary)}</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                                <div className="flex flex-col items-end gap-2">
-                                    <Badge
-                                        variant="outline"
-                                        className={getApplicationStatusColor(application.status)}
-                                    >
-                                        {application.status}
-                                    </Badge>
-                                    {resume?.score && (
-                                        <Badge
-                                            variant="outline"
-                                            className={`text-lg px-3 py-1 ${getScoreBadgeColor(resume.score)}`}
-                                        >
-                                            <TrendingUp className="h-4 w-4 mr-1" />
-                                            {resume.score}% Match
-                                        </Badge>
-                                    )}
-                                </div>
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                <div className="flex items-center gap-2 text-sm">
-                                    <Calendar className="h-4 w-4 text-blue-600" />
-                                    <div>
-                                        <p className="font-medium">Applied Date</p>
-                                        <p className="text-muted-foreground">{formatDate(application.created_at)}</p>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-2 text-sm">
-                                    <FileText className="h-4 w-4 text-green-600" />
-                                    <div>
-                                        <p className="font-medium">Resume Analyzed</p>
-                                        <p className="text-muted-foreground">{formatDate(resume?.created_at)}</p>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-2 text-sm">
-                                    <User className="h-4 w-4 text-purple-600" />
-                                    <div>
-                                        <p className="font-medium">Application ID</p>
-                                        <p className="text-muted-foreground font-mono">{application.id.slice(0, 8)}...</p>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center gap-2 text-sm">
-                                    <Briefcase className="h-4 w-4 text-orange-600" />
-                                    <div>
-                                        <p className="font-medium">Job ID</p>
-                                        <p className="text-muted-foreground font-mono">{application.job_id.slice(0, 8)}...</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {application.job?.description && (
-                                <div className="mt-6 pt-6 border-t">
-                                    <h4 className="font-semibold mb-2">Job Description</h4>
-                                    <p className="text-sm text-gray-600 leading-relaxed">
-                                        {application.job.description}
-                                    </p>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-
-                    {/* Status Update Actions */}
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-lg">Update Application Status</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex flex-wrap gap-2">
-                                {["applied", "reviewing", "interviewed", "accepted", "rejected"].map((status) => (
-                                    <Button
-                                        key={status}
-                                        variant={application.status === status ? "default" : "outline"}
-                                        size="sm"
-                                        onClick={() => handleUpdateStatus(status)}
-                                        disabled={application.status === status}
-                                    >
-                                        {status.charAt(0).toUpperCase() + status.slice(1)}
-                                    </Button>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* AI Analysis Results */}
-                    {analysisData ? (
-                        <div>
-                            <h2 className="text-2xl font-bold mb-4">AI Resume Analysis</h2>
-                            <ResumeAnalysisResults
-                                analysis={analysisData}
-                                onNewAnalysis={() => {
-                                    // Could trigger re-analysis or navigate to new analysis
-                                    toast.info("Re-analysis feature coming soon!");
-                                }}
-                            />
-                        </div>
-                    ) : (
-                        <Card>
-                            <CardContent className="pt-6">
-                                <div className="text-center text-muted-foreground">
-                                    <AlertCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                                    <h3 className="font-semibold mb-2">No Analysis Data Available</h3>
-                                    <p className="text-sm">
-                                        This application doesn't have AI analysis data yet.
-                                    </p>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    )}
                 </div>
-            </SidebarInset>
-        </SidebarProvider>
+            </header>
+
+            {/* Main Content */}
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                {/* Hero Section */}
+                <div className="bg-white rounded-lg shadow-lg p-8 mb-8">
+                    <div className="text-center">
+                        <h2 className="text-3xl font-bold text-gray-900 mb-4">
+                            AI-Powered Resume Analysis
+                        </h2>
+                        <p className="text-lg text-gray-600 mb-6">
+                            Comprehensive compatibility assessment for {application.job?.title || "Unknown Position"}
+                        </p>
+                        {resume?.score && (
+                            <div className="inline-flex items-center gap-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-full px-8 py-4 border border-blue-200">
+                                <TrendingUp className="h-8 w-8 text-blue-600" />
+                                <div className="text-left">
+                                    <div className="text-3xl font-bold text-gray-900">{resume.score}%</div>
+                                    <div className="text-sm text-gray-600">Overall Match Score</div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Application Overview */}
+                <Card className="shadow-lg mb-8">
+                    <CardHeader className="bg-gradient-to-r from-gray-50 to-blue-50">
+                        <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                                <CardTitle className="text-2xl text-gray-900 mb-3">
+                                    {application.job?.title || "Unknown Position"}
+                                </CardTitle>
+                                <div className="flex flex-wrap items-center gap-4 text-muted-foreground">
+                                    <div className="flex items-center gap-2">
+                                        <Building className="h-4 w-4 text-blue-600" />
+                                        <span className="font-medium">{application.job?.job_type || "Full-time"}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <MapPin className="h-4 w-4 text-green-600" />
+                                        <span>Remote</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Briefcase className="h-4 w-4 text-purple-600" />
+                                        <span>{application.job?.job_type || "Not specified"}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex flex-col items-end gap-3">
+                                <Badge
+                                    variant="outline"
+                                    className={`text-sm px-3 py-1 ${getApplicationStatusColor(application.status)}`}
+                                >
+                                    {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
+                                </Badge>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="pt-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg">
+                                <div className="p-2 bg-blue-100 rounded-full">
+                                    <Calendar className="h-5 w-5 text-blue-600" />
+                                </div>
+                                <div>
+                                    <p className="font-medium text-gray-900">Applied Date</p>
+                                    <p className="text-sm text-gray-600">{formatDate(application.created_at)}</p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-3 p-4 bg-green-50 rounded-lg">
+                                <div className="p-2 bg-green-100 rounded-full">
+                                    <FileText className="h-5 w-5 text-green-600" />
+                                </div>
+                                <div>
+                                    <p className="font-medium text-gray-900">Resume Status</p>
+                                    <p className="text-sm text-gray-600">Analyzed</p>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-3 p-4 bg-purple-50 rounded-lg">
+                                <div className="p-2 bg-purple-100 rounded-full">
+                                    <TrendingUp className="h-5 w-5 text-purple-600" />
+                                </div>
+                                <div>
+                                    <p className="font-medium text-gray-900">Match Score</p>
+                                    <p className="text-sm text-gray-600">{resume?.score || 0}%</p>
+                                </div>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Resume Analysis Results */}
+                {analysisData && (
+                    <div className="space-y-8">
+                        <ResumeAnalysisResults
+                            analysis={analysisData}
+                            onNewAnalysis={() => {
+                                console.log("Re-analysis requested");
+                                toast.info("Re-analysis feature coming soon!");
+                            }}
+                        />
+                    </div>
+                )}
+
+                {!analysisData && (
+                    <Card className="shadow-lg">
+                        <CardContent className="text-center py-12">
+                            <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">No Analysis Data Available</h3>
+                            <p className="text-gray-600">
+                                The resume analysis data is not available for this application.
+                            </p>
+                        </CardContent>
+                    </Card>
+                )}
+            </main>
+        </div>
     );
 }

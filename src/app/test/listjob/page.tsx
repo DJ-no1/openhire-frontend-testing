@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { JobApplicationModal } from "@/components/job-application-modal";
 import { type Job as JobType } from "@/lib/api";
 import { getJobUrl } from "@/lib/job-service";
+import { useAuth } from "@/hooks/use-auth";
 
 type Job = {
     id: string;
@@ -25,6 +26,7 @@ type Job = {
 };
 
 export default function ListJobPage() {
+    const { user } = useAuth();
     const [jobs, setJobs] = useState<Job[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -106,6 +108,7 @@ export default function ListJobPage() {
                 job={applyJob as JobType | null}
                 open={applyDialogOpen}
                 onOpenChange={setApplyDialogOpen}
+                candidateId={user?.id}
             />
         </div>
     );

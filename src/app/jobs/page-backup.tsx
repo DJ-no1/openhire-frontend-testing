@@ -75,6 +75,7 @@ interface Job {
 }
 
 export default function ListJobPage() {
+    const { user } = useAuth();
     const [jobs, setJobs] = useState<Job[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -156,6 +157,7 @@ export default function ListJobPage() {
                 job={applyJob as JobType | null}
                 open={applyDialogOpen}
                 onOpenChange={setApplyDialogOpen}
+                candidateId={user?.id}
             />
         </div>
     );

@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { CreateJobModal } from '@/components/create-job-modal';
 import { useAuth } from '@/hooks/use-auth';
-import { jobService, Job as JobType } from '@/lib/job-service';
+import { jobService, Job as JobType, getJobUrl } from '@/lib/job-service';
 import { toast } from 'sonner';
 import {
     Briefcase,
@@ -446,7 +446,7 @@ export default function RecruiterJobsPage() {
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem onClick={() => router.push(`/recruiters/jobs/${job.id}`)}>
+                                                    <DropdownMenuItem onClick={() => router.push(getJobUrl(job))}>
                                                         <Eye className="mr-2 h-4 w-4" />
                                                         View Details
                                                     </DropdownMenuItem>

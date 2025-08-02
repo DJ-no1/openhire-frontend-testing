@@ -389,6 +389,7 @@ export default function CandidateDashboardJobDetailPage() {
                         setHasApplied(true);
                     }
                 }}
+                candidateId={user?.id}
             />
         </div>
     );

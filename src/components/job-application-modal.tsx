@@ -53,16 +53,22 @@ export function JobApplicationModal({ job, open, onOpenChange, candidateId }: Jo
             return;
         }
 
+        console.log('🚀 Starting job application submission');
+        console.log('📋 Job ID:', job.id);
+        console.log('👤 Candidate ID:', candidateId);
+        console.log('📁 Selected file:', selectedFile.name);
+
         setIsLoading(true);
 
         try {
             // Step 1: Create application in database
             toast.info("Creating application...");
             const application = await DatabaseService.createApplication(
-                job.id
+                job.id,
+                candidateId
             );
             setApplicationId(application.id);
-            console.log('Application created:', application);
+            console.log('✅ Application created:', application);
 
             // Step 2: Perform AI analysis
             toast.info("Analyzing resume with AI...");
@@ -91,6 +97,17 @@ export function JobApplicationModal({ job, open, onOpenChange, candidateId }: Jo
                 setSavedToDatabase(true);
                 setShowResults(true);
                 toast.success("Application submitted and analysis completed!");
+
+                // Show countdown toast before redirect
+                toast.info("Redirecting to detailed analysis in 2 seconds...", {
+                    duration: 2000,
+                });
+
+                // Auto-redirect to full analysis page after a short delay
+                setTimeout(() => {
+                    router.push(`/dashboard/application/${application.id}/analysis`);
+                    handleClose(); // Close the modal
+                }, 2000); // 2 second delay to show success message
 
             } else {
                 const errorData = await response.json();
@@ -277,7 +294,7 @@ export function JobApplicationModal({ job, open, onOpenChange, candidateId }: Jo
                                         <div className="flex-1">
                                             <h4 className="font-semibold text-green-800">Application Submitted Successfully!</h4>
                                             <p className="text-sm text-green-700">
-                                                Your application and analysis have been saved to your dashboard.
+                                                Your application and analysis have been saved. Redirecting to detailed analysis...
                                             </p>
                                         </div>
                                     </div>
@@ -289,7 +306,7 @@ export function JobApplicationModal({ job, open, onOpenChange, candidateId }: Jo
                                             className="text-green-700 border-green-300 hover:bg-green-100"
                                         >
                                             <Database className="h-4 w-4 mr-2" />
-                                            View in Dashboard
+                                            View Analysis Now
                                         </Button>
                                         <Button
                                             size="sm"

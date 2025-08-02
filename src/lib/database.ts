@@ -73,13 +73,28 @@ export interface DatabaseInterviewArtifacts {
 export class DatabaseService {
     // Create a new application
     static async createApplication(jobId: string, candidateId?: string, resumeFilePath?: string) {
-        // Use the fixed candidate ID that should already exist in your database
+        // Use the provided candidate ID or fall back to fixed candidate ID for testing
         const fixedCandidateId = '2a218b64-c1f2-4cec-9ed4-0b4a7541b859';
         let actualCandidateId = candidateId || fixedCandidateId;
 
-        console.log('Creating application with candidate ID:', actualCandidateId);
+        console.log('🚀 Creating application with candidate ID:', actualCandidateId);
+        console.log('📊 Job ID:', jobId);
+        console.log('📋 Provided candidate ID:', candidateId);
+        console.log('🔧 Using fallback?', !candidateId);
 
-        // Create application directly - assume candidate exists
+        // If candidateId is provided (from logged-in user), ensure the candidate exists first
+        if (candidateId) {
+            try {
+                console.log('✅ Ensuring candidate exists for ID:', candidateId);
+                await this.ensureCandidateExists(candidateId);
+                console.log('✅ Candidate verification complete for ID:', candidateId);
+            } catch (error) {
+                console.error('❌ Failed to ensure candidate exists:', error);
+                throw new Error(`Failed to verify candidate: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            }
+        }
+
+        // Create application
         const { data: application, error: appError } = await supabase
             .from('applications')
             .insert({
@@ -91,7 +106,7 @@ export class DatabaseService {
             .single();
 
         if (appError) {
-            console.error('Application creation error:', appError);
+            console.error('❌ Application creation error:', appError);
             if (appError.code === '23503') {
                 throw new Error(`Candidate ID ${actualCandidateId} does not exist in users table. Please run the test-data.sql script first.`);
             }
@@ -244,57 +259,154 @@ export class DatabaseService {
         }
     }
 
-    // Get application with full details
+    // Get application with full details - Alternative approach
     static async getApplicationWithDetails(applicationId: string) {
-        const { data, error } = await supabase
+        console.log('🔍 Fetching application details for:', applicationId);
+
+        // Step 1: Fetch basic application data
+        const { data: appData, error: appError } = await supabase
             .from('applications')
             .select(`
                 *,
                 job:jobs(*),
-                candidate:users(*),
-                user_resume(*)
+                candidate:users(*)
             `)
             .eq('id', applicationId)
             .single();
 
-        if (error) throw error;
-        return data as DatabaseApplication & {
+        if (appError) {
+            console.error('❌ Application fetch error:', appError);
+            throw new Error(`Application not found: ${appError.message}`);
+        }
+
+        console.log('✅ Application data fetched:', appData);
+
+        // Step 2: Fetch related resume data separately
+        const { data: resumeData, error: resumeError } = await supabase
+            .from('user_resume')
+            .select('*')
+            .eq('application_id', applicationId);
+
+        if (resumeError) {
+            console.error('⚠️ Resume fetch error (non-fatal):', resumeError);
+            // Don't throw error for resume, just log and continue with empty array
+        }
+
+        console.log('📄 Resume data fetched:', resumeData);
+
+        const result = {
+            ...appData,
+            user_resume: resumeData || []
+        } as DatabaseApplication & {
             user_resume: DatabaseUserResume[];
         };
+
+        console.log('🎯 Final result:', result);
+        return result;
     }
 
     // Get all applications for a candidate
     static async getApplicationsForCandidate(candidateId: string) {
+        try {
+            // Try explicit foreign key approach first
+            const { data, error } = await supabase
+                .from('applications')
+                .select(`
+                    *,
+                    job:jobs(*),
+                    user_resume!user_resume_application_id_fkey(*)
+                `)
+                .eq('candidate_id', candidateId)
+                .order('created_at', { ascending: false });
+
+            if (!error && data) {
+                return data as (DatabaseApplication & {
+                    user_resume: DatabaseUserResume[];
+                })[];
+            }
+        } catch (firstError) {
+            console.log('Explicit foreign key failed, using fallback...');
+        }
+
+        // Fallback: Fetch without explicit foreign key
         const { data, error } = await supabase
             .from('applications')
             .select(`
                 *,
-                job:jobs(*),
-                user_resume(*)
+                job:jobs(*)
             `)
             .eq('candidate_id', candidateId)
             .order('created_at', { ascending: false });
 
         if (error) throw error;
-        return data as (DatabaseApplication & {
+
+        // Fetch resumes for all applications
+        const applicationIds = data.map(app => app.id);
+        const { data: resumeData } = await supabase
+            .from('user_resume')
+            .select('*')
+            .in('application_id', applicationIds);
+
+        // Map resumes to applications
+        const appsWithResumes = data.map(app => ({
+            ...app,
+            user_resume: resumeData?.filter(resume => resume.application_id === app.id) || []
+        }));
+
+        return appsWithResumes as (DatabaseApplication & {
             user_resume: DatabaseUserResume[];
         })[];
     }
 
     // Get all applications for a job (recruiter view)
     static async getApplicationsForJob(jobId: string) {
+        try {
+            // Try explicit foreign key approach first
+            const { data, error } = await supabase
+                .from('applications')
+                .select(`
+                    *,
+                    candidate:users(*),
+                    user_resume!user_resume_application_id_fkey(*)
+                `)
+                .eq('job_id', jobId)
+                .order('created_at', { ascending: false });
+
+            if (!error && data) {
+                return data as (DatabaseApplication & {
+                    user_resume: DatabaseUserResume[];
+                })[];
+            }
+        } catch (firstError) {
+            console.log('Explicit foreign key failed for job applications, using fallback...');
+        }
+
+        // Fallback: Fetch without explicit foreign key
         const { data, error } = await supabase
             .from('applications')
             .select(`
                 *,
-                candidate:users(*),
-                user_resume(*)
+                candidate:users(*)
             `)
             .eq('job_id', jobId)
             .order('created_at', { ascending: false });
 
         if (error) throw error;
-        return data as (DatabaseApplication & {
+
+        // Fetch resumes for all applications
+        const applicationIds = data.map(app => app.id);
+        const { data: resumeData } = await supabase
+            .from('user_resume')
+            .select('*')
+            .in('application_id', applicationIds);
+
+        // Map resumes to applications
+        const appsWithResumes = data.map(app => ({
+            ...app,
+            user_resume: resumeData?.filter(resume => resume.application_id === app.id) || []
+        }));
+
+        return appsWithResumes as (DatabaseApplication & {
             user_resume: DatabaseUserResume[];
         })[];
     }

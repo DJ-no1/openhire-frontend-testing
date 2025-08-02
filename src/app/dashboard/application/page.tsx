@@ -1,20 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
-import { AppSidebar } from "@/components/app-sidebar";
-import {
-    Breadcrumb,
-    BreadcrumbItem,
-    BreadcrumbLink,
-    BreadcrumbList,
-    BreadcrumbPage,
-    BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { Separator } from "@/components/ui/separator";
-import {
-    SidebarInset,
-    SidebarProvider,
-    SidebarTrigger,
-} from "@/components/ui/sidebar";
+import { AppNavigation } from "@/components/app-navigation";
+import { ProtectedRoute } from '@/components/protected-route';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -37,10 +24,34 @@ import {
     Eye,
     BarChart3,
     Clock,
-    MapPin
+    MapPin,
+    Briefcase
 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
+
+const navigationItems = [
+    {
+        label: 'Dashboard',
+        href: '/dashboard',
+        icon: <Briefcase className="h-4 w-4" />
+    },
+    {
+        label: 'Browse Jobs',
+        href: '/dashboard/jobs',
+        icon: <Search className="h-4 w-4" />
+    },
+    {
+        label: 'Applications',
+        href: '/dashboard/application',
+        icon: <FileText className="h-4 w-4" />
+    },
+    {
+        label: 'Interviews',
+        href: '/dashboard/interviews',
+        icon: <Calendar className="h-4 w-4" />
+    },
+];
 
 export default function ApplicationsPage() {
     const [applications, setApplications] = useState<(DatabaseApplication & { user_resume: DatabaseUserResume[] })[]>([]);
@@ -119,51 +130,35 @@ export default function ApplicationsPage() {
 
     if (loading) {
         return (
-            <SidebarProvider>
-                <AppSidebar />
-                <SidebarInset>
-                    <div className="flex items-center justify-center min-h-screen">
-                        <div className="text-center space-y-4">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                            <p className="text-muted-foreground">Loading your applications...</p>
-                        </div>
+            <ProtectedRoute requiredRole="candidate">
+                <AppNavigation
+                    items={navigationItems}
+                    title="OpenHire"
+                    subtitle="Job Search Dashboard"
+                />
+                <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
+                    <div className="text-center space-y-4">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                        <p className="text-muted-foreground">Loading your applications...</p>
                     </div>
-                </SidebarInset>
-            </SidebarProvider>
+                </div>
+            </ProtectedRoute>
         );
     }
 
     return (
-        <SidebarProvider>
-            <AppSidebar />
-            <SidebarInset>
-                <header className="flex h-16 shrink-0 items-center gap-2">
-                    <div className="flex items-center gap-2 px-4">
-                        <SidebarTrigger className="-ml-1" />
-                        <Separator
-                            orientation="vertical"
-                            className="mr-2 data-[orientation=vertical]:h-4"
-                        />
-                        <Breadcrumb>
-                            <BreadcrumbList>
-                                <BreadcrumbItem className="hidden md:block">
-                                    <BreadcrumbLink href="/">
-                                        OpenHire
-                                    </BreadcrumbLink>
-                                </BreadcrumbItem>
-                                <BreadcrumbSeparator className="hidden md:block" />
-                                <BreadcrumbItem>
-                                    <BreadcrumbPage>My Applications</BreadcrumbPage>
-                                </BreadcrumbItem>
-                            </BreadcrumbList>
-                        </Breadcrumb>
-                    </div>
-                </header>
+        <ProtectedRoute requiredRole="candidate">
+            <AppNavigation
+                items={navigationItems}
+                title="OpenHire"
+                subtitle="Job Search Dashboard"
+            />
 
-                <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-                    <div className="flex items-center justify-between">
+            <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                    <div className="flex items-center justify-between mb-8">
                         <div>
-                            <h1 className="text-3xl font-bold text-gray-900">My Applications</h1>
+                            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">My Applications</h1>
                             <p className="text-muted-foreground mt-1">
                                 Track and manage your job applications with AI analysis insights
                             </p>
@@ -342,7 +337,7 @@ export default function ApplicationsPage() {
                         </div>
                     )}
                 </div>
-            </SidebarInset>
-        </SidebarProvider>
+            </div>
+        </ProtectedRoute>
     );
 }
