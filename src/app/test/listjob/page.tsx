@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { JobApplicationModal } from "@/components/job-application-modal";
+import { ResumeUploadAnalyzer } from "@/components/resume-upload-analyzer";
 import { type Job as JobType } from "@/lib/api";
 import { getJobUrl } from "@/lib/job-service";
 import { useAuth } from "@/hooks/use-auth";
@@ -103,8 +103,8 @@ export default function ListJobPage() {
                 </DialogContent>
             </Dialog>
 
-            {/* Apply Dialog using JobApplicationModal */}
-            <JobApplicationModal
+            {/* Apply Dialog using ResumeUploadAnalyzer */}
+            <ResumeUploadAnalyzer
                 job={applyJob as JobType | null}
                 open={applyDialogOpen}
                 onOpenChange={setApplyDialogOpen}

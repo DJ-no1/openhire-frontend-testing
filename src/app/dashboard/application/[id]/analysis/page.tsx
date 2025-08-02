@@ -25,8 +25,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { DatabaseService, type DatabaseApplication, type DatabaseUserResume } from "@/lib/database";
+import { DatabaseService, type DatabaseApplication, type DatabaseUserResume, getApplicationStatusColor } from "@/lib/database";
 import { ResumeAnalysisResults } from "@/components/resume-analysis-results";
+import { CandidateApplicationsList } from "@/components/candidate-applications-list";
+
+
 
 // Define ReviewResponse type inline since we can't find the module
 interface ReviewResponse {
@@ -41,12 +44,14 @@ export default function ApplicationAnalysisPage() {
     const [analysisData, setAnalysisData] = useState<ReviewResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [isInitialized, setIsInitialized] = useState(false);
 
     useEffect(() => {
-        if (id) {
+        if (id && !isInitialized) {
+            setIsInitialized(true);
             fetchApplicationData(id as string);
         }
-    }, [id]);
+    }, [id, isInitialized]);
 
     const fetchApplicationData = async (applicationId: string) => {
         setLoading(true);
@@ -54,9 +59,16 @@ export default function ApplicationAnalysisPage() {
         try {
             console.log('Fetching application data for ID:', applicationId);
 
+            // Add a small delay to prevent flashing
+            await new Promise(resolve => setTimeout(resolve, 200));
+
             // Fetch application details
             const appData = await DatabaseService.getApplicationWithDetails(applicationId);
             console.log('Application data received:', appData);
+
+            if (!appData) {
+                throw new Error('Application not found');
+            }
 
             setApplication(appData);
 
@@ -134,7 +146,7 @@ export default function ApplicationAnalysisPage() {
                 console.log('No resume analysis data found');
             }
 
-            toast.success("Application data loaded successfully");
+            // Remove the toast.success to prevent brief flash
         } catch (err) {
             console.error('Error fetching application data:', err);
             const errorMessage = (err as Error).message;
@@ -156,7 +168,14 @@ export default function ApplicationAnalysisPage() {
 
     const handleRefresh = () => {
         if (id) {
-            fetchApplicationData(id as string);
+            setIsInitialized(false);
+            setApplication(null);
+            setAnalysisData(null);
+            setError(null);
+            setTimeout(() => {
+                setIsInitialized(true);
+                fetchApplicationData(id as string);
+            }, 100);
         }
     };
 
@@ -225,10 +244,10 @@ export default function ApplicationAnalysisPage() {
                                 <RefreshCw className="mr-2 h-4 w-4" />
                                 Try Again
                             </Button>
-                            <Link href="/dashboard/application">
-                                <Button>
+                            <Link href="/dashboard">
+                                <Button variant="outline">
                                     <ArrowLeft className="mr-2 h-4 w-4" />
-                                    Back to Applications
+                                    Back to Dashboard
                                 </Button>
                             </Link>
                         </div>
@@ -264,12 +283,12 @@ export default function ApplicationAnalysisPage() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between h-16">
                         <div className="flex items-center gap-4">
-                            <Link href="/dashboard/application">
+                            {/* <Link href="/dashboard/application">
                                 <Button variant="outline" size="sm">
                                     <ArrowLeft className="mr-2 h-4 w-4" />
                                     Back to Applications
                                 </Button>
-                            </Link>
+                            </Link> */}
                             <div>
                                 <h1 className="text-xl font-semibold text-gray-900">
                                     Resume Analysis Report
@@ -398,6 +417,14 @@ export default function ApplicationAnalysisPage() {
                                 toast.info("Re-analysis feature coming soon!");
                             }}
                         />
+
+                        {/* Show other applications by this candidate */}
+                        {application.candidate_id && (
+                            <CandidateApplicationsList
+                                candidateId={application.candidate_id}
+                                excludeApplicationId={application.id}
+                            />
+                        )}
                     </div>
                 )}
 

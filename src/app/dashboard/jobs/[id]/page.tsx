@@ -25,7 +25,7 @@ import {
 import { jobService, Job } from "@/lib/job-service";
 import { useAuth } from "@/hooks/use-auth";
 import ReactMarkdown from "react-markdown";
-import { JobApplicationModal } from "@/components/job-application-modal";
+import { ResumeUploadAnalyzer } from "@/components/resume-upload-analyzer";
 import { toast } from "sonner";
 
 export default function CandidateDashboardJobDetailPage() {
@@ -378,10 +378,10 @@ export default function CandidateDashboardJobDetailPage() {
             </Card>
 
             {/* Job Application Modal */}
-            <JobApplicationModal
+            <ResumeUploadAnalyzer
                 job={job as any}
                 open={isApplicationModalOpen}
-                onOpenChange={(open) => {
+                onOpenChange={(open: boolean) => {
                     setIsApplicationModalOpen(open);
                     if (!open) {
                         // Assume successful application if modal was closed

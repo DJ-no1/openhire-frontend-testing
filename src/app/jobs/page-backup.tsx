@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/use-auth';
 import { jobService, Job as JobType, getJobUrl } from '@/lib/job-service';
 import { toast } from 'sonner';
+import { ResumeUploadAnalyzer } from '@/components/resume-upload-analyzer';
 import {
     Briefcase,
     Users,
@@ -152,9 +153,17 @@ export default function ListJobPage() {
                 </DialogContent>
             </Dialog>
 
-            {/* Apply Dialog using JobApplicationModal */}
-            <JobApplicationModal
-                job={applyJob as JobType | null}
+            {/* Apply Dialog using ResumeUploadAnalyzer */}
+            <ResumeUploadAnalyzer
+                job={applyJob ? {
+                    id: applyJob.id,
+                    title: applyJob.title,
+                    description: applyJob.description || '',
+                    recruiter_id: applyJob.recruiter_id || '',
+                    job_type: applyJob.job_type || 'Full-time',
+                    salary: undefined,
+                    created_at: applyJob.created_at
+                } : null}
                 open={applyDialogOpen}
                 onOpenChange={setApplyDialogOpen}
                 candidateId={user?.id}

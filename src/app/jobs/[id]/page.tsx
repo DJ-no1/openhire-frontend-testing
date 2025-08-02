@@ -10,7 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/hooks/use-auth';
 import { jobService, Job as JobType } from '@/lib/job-service';
 import { toast } from 'sonner';
-import { JobApplicationModal } from '@/components/job-application-modal';
+import { ResumeUploadAnalyzer } from '@/components/resume-upload-analyzer';
 import {
     ArrowLeft,
     Briefcase,
@@ -533,14 +533,14 @@ export default function JobDetailPage() {
                 </div>
 
                 {/* Application Modal */}
-                <JobApplicationModal
+                <ResumeUploadAnalyzer
                     job={job ? {
                         id: job.id,
                         title: job.title,
                         description: job.description,
                         recruiter_id: job.recruiter_id || '',
                         job_type: job.job_type || 'Full-time',
-                        salary: job.salary ? parseInt(job.salary.replace(/[^0-9]/g, '')) : undefined,
+                        salary: job.salary ? parseInt(job.salary.replace(/[^0-9]/g, '')) || undefined : undefined,
                         created_at: job.created_at
                     } : null}
                     open={isApplicationModalOpen}

@@ -19,28 +19,6 @@ import {
     AlertCircle
 } from 'lucide-react';
 
-const navigationItems = [
-    {
-        label: 'Dashboard',
-        href: '/dashboard',
-        icon: <Briefcase className="h-4 w-4" />
-    },
-    {
-        label: 'Browse Jobs',
-        href: '/dashboard/jobs',
-        icon: <Search className="h-4 w-4" />
-    },
-    {
-        label: 'Applications',
-        href: '/dashboard/application',
-        icon: <FileText className="h-4 w-4" />
-    },
-    {
-        label: 'Interviews',
-        href: '/dashboard/interviews',
-        icon: <Calendar className="h-4 w-4" />
-    },
-];
 
 export default function CandidateDashboardPage() {
     const { user } = useAuth();
@@ -140,11 +118,7 @@ export default function CandidateDashboardPage() {
 
     return (
         <ProtectedRoute requiredRole="candidate">
-            <AppNavigation
-                items={navigationItems}
-                title="OpenHire"
-                subtitle="Job Search Dashboard"
-            />
+        
 
             <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

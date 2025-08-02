@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { JobApplicationModal } from '@/components/job-application-modal';
+import { ResumeUploadAnalyzer } from '@/components/resume-upload-analyzer';
 import { AppNavigation } from '@/components/app-navigation';
 import { ProtectedRoute } from '@/components/protected-route';
 import { useAuth } from '@/hooks/use-auth';
@@ -59,28 +59,7 @@ interface Job {
     job_link?: string;
 }
 
-const navigationItems = [
-    {
-        label: 'Dashboard',
-        href: '/dashboard',
-        icon: <Briefcase className="h-4 w-4" />
-    },
-    {
-        label: 'Browse Jobs',
-        href: '/dashboard/jobs',
-        icon: <Search className="h-4 w-4" />
-    },
-    {
-        label: 'Applications',
-        href: '/dashboard/application',
-        icon: <FileText className="h-4 w-4" />
-    },
-    {
-        label: 'Interviews',
-        href: '/dashboard/interviews',
-        icon: <Calendar className="h-4 w-4" />
-    },
-];
+
 
 export default function CandidateDashboardJobsPage() {
     const { user } = useAuth();
@@ -191,7 +170,7 @@ export default function CandidateDashboardJobsPage() {
     };
 
     const handleApply = (job: Job) => {
-        // Convert job to match JobApplicationModal expected format
+        // Convert job to match ResumeUploadAnalyzer expected format
         const jobForModal = {
             ...job,
             description: typeof job.description === 'string' ? job.description : JSON.stringify(job.description)
@@ -235,11 +214,7 @@ export default function CandidateDashboardJobsPage() {
 
     return (
         <ProtectedRoute requiredRole="candidate">
-            <AppNavigation
-                items={navigationItems}
-                title="OpenHire"
-                subtitle="Job Search Dashboard"
-            />
+
 
             <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -514,7 +489,7 @@ export default function CandidateDashboardJobsPage() {
                     </div>
 
                     {/* Job Application Modal */}
-                    <JobApplicationModal
+                    <ResumeUploadAnalyzer
                         job={selectedJob as any}
                         open={applyModalOpen}
                         onOpenChange={setApplyModalOpen}
