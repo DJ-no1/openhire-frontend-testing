@@ -81,21 +81,21 @@ const data = {
       ],
     },
     {
-      title: "Job Management",
-      url: "/jobs",
+      title: "Job Search",
+      url: "/dashboard/jobs",
       icon: FileText,
       items: [
         {
-          title: "All Jobs",
+          title: "Browse Jobs",
+          url: "/dashboard/jobs",
+        },
+        {
+          title: "Public Jobs",
           url: "/jobs",
         },
         {
-          title: "Create Job",
-          url: "/listjob",
-        },
-        {
-          title: "Job Templates",
-          url: "/jobs/templates",
+          title: "Saved Jobs",
+          url: "/dashboard/jobs/saved",
         },
       ],
     },

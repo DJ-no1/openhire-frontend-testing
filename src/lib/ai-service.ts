@@ -55,34 +55,85 @@ class AIService {
 
     // Fallback method for when AI service is unavailable
     generateFallbackDescription(request: GenerateDescriptionRequest): JobDescription {
-        const { title, company_name, skills, experience_level, job_type, location } = request;
+        const { title, company_name, skills, experience_level, job_type, location, custom_requirements, company_details } = request;
 
-        // Create basic templates based on common patterns
+        // Create more dynamic templates based on job title and skills
+        const isEngineeringRole = title.toLowerCase().includes('engineer') || title.toLowerCase().includes('developer');
+        const isManagementRole = title.toLowerCase().includes('manager') || title.toLowerCase().includes('lead');
+        const isDesignRole = title.toLowerCase().includes('designer') || title.toLowerCase().includes('design');
+
+        // Base requirements with dynamic content
         const baseRequirements = [
             `Bachelor's degree in relevant field or equivalent experience`,
-            `${this.getExperienceText(experience_level)} experience in ${title.toLowerCase()} role`,
-            `Strong knowledge of ${skills.slice(0, 3).join(', ')}`,
+            `${this.getExperienceText(experience_level)} experience in ${title.toLowerCase()} or related role`,
+            `Strong proficiency in ${skills.slice(0, 3).join(', ')}`,
         ];
 
+        // Add role-specific requirements
+        if (isEngineeringRole) {
+            baseRequirements.push(`Experience with software development lifecycle and best practices`);
+            baseRequirements.push(`Strong problem-solving and analytical skills`);
+        } else if (isManagementRole) {
+            baseRequirements.push(`Proven leadership and team management experience`);
+            baseRequirements.push(`Excellent communication and project management skills`);
+        } else if (isDesignRole) {
+            baseRequirements.push(`Strong portfolio demonstrating design thinking and creativity`);
+            baseRequirements.push(`Proficiency in design tools and user experience principles`);
+        }
+
+        // Add additional skills if available
+        if (skills.length > 3) {
+            baseRequirements.push(`Experience with ${skills.slice(3, 6).join(', ')} is a plus`);
+        }
+
+        // Add custom requirements if provided
+        if (custom_requirements?.trim()) {
+            baseRequirements.push(custom_requirements.trim());
+        }
+
+        // Dynamic responsibilities based on role
         const baseResponsibilities = [
-            `Develop and maintain high-quality ${title.toLowerCase()} solutions`,
-            `Collaborate with cross-functional teams to deliver projects`,
-            `Participate in code reviews and maintain coding standards`,
+            `Design, develop, and maintain high-quality ${title.toLowerCase()} solutions`,
+            `Collaborate with cross-functional teams to deliver exceptional results`,
+            `Participate in code/design reviews and maintain quality standards`,
             `Contribute to technical documentation and knowledge sharing`,
         ];
 
+        if (isEngineeringRole) {
+            baseResponsibilities.push(`Write clean, maintainable, and efficient code`);
+            baseResponsibilities.push(`Debug and optimize application performance`);
+        } else if (isManagementRole) {
+            baseResponsibilities.push(`Lead and mentor team members`);
+            baseResponsibilities.push(`Drive strategic planning and execution`);
+        } else if (isDesignRole) {
+            baseResponsibilities.push(`Create user-centered design solutions`);
+            baseResponsibilities.push(`Conduct user research and usability testing`);
+        }
+
+        // Enhanced benefits
         const baseBenefits = [
-            `Competitive salary and benefits package`,
-            `Professional development opportunities`,
-            `Flexible working arrangements`,
+            `Competitive salary and comprehensive benefits package`,
+            `Professional development and learning opportunities`,
+            `Flexible working arrangements and work-life balance`,
             `Health and wellness programs`,
+            `Collaborative and innovative work environment`,
         ];
 
-        // Add company-specific context to the experience section
-        const companyContext = `Join ${company_name} as a ${title} and be part of our dynamic team in ${location}. We are looking for talented individuals who are passionate about technology and innovation.`;
+        // Add location-specific benefits
+        if (location.toLowerCase().includes('remote')) {
+            baseBenefits.push(`Remote work flexibility with modern collaboration tools`);
+        }
 
-        if (skills.length > 3) {
-            baseRequirements.push(`Experience with ${skills.slice(3).join(', ')} is a plus`);
+        // Create personalized experience section
+        let companyContext = `Join ${company_name} as a ${title} and be part of our dynamic team`;
+        if (location && !location.toLowerCase().includes('remote')) {
+            companyContext += ` in ${location}`;
+        }
+        companyContext += `. We are looking for talented individuals who are passionate about technology and innovation.`;
+
+        // Add company details if provided
+        if (company_details?.trim()) {
+            companyContext += `\n\n${company_details.trim()}`;
         }
 
         return {

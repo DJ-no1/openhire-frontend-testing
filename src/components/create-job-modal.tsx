@@ -193,8 +193,8 @@ export function CreateJobModal({ open, onOpenChange, onJobCreated }: CreateJobMo
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="w-[70vw] max-w-none max-h-[95vh] overflow-hidden">
-                <DialogHeader>
+            <DialogContent className="w-[70vw] max-w-none h-[85vh] overflow-hidden sm:max-w-none flex flex-col" showCloseButton={false}>
+                <DialogHeader className="flex-shrink-0">
                     <div className="flex items-center justify-between">
                         <DialogTitle className="flex items-center gap-2">
                             <Briefcase className="h-5 w-5" />
@@ -206,241 +206,251 @@ export function CreateJobModal({ open, onOpenChange, onJobCreated }: CreateJobMo
                     </div>
                 </DialogHeader>
 
-                <ScrollArea className="max-h-[80vh] pr-4">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 py-4">
-                        {/* Left Column - Form */}
-                        <div className="space-y-6">
-                            {/* Basic Information */}
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2 text-lg">
-                                        <Briefcase className="h-4 w-4" />
-                                        Basic Information
-                                    </CardTitle>
-                                    <CardDescription>
-                                        Enter the basic details about the job position
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="title">Job Title *</Label>
-                                        <Input
-                                            id="title"
-                                            placeholder="e.g. Senior Frontend Developer"
-                                            value={formData.title}
-                                            onChange={(e) => handleInputChange('title', e.target.value)}
-                                        />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <Label htmlFor="company_name">Company Name *</Label>
-                                        <div className="relative">
-                                            <Building className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <div className="flex flex-col flex-1 min-h-0">
+                    <ScrollArea className="flex-1 overflow-y-auto pr-4">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 py-4 min-h-0">
+                            {/* Left Column - Form */}
+                            <div className="space-y-6">
+                                {/* Basic Information */}
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2 text-lg">
+                                            <Briefcase className="h-4 w-4" />
+                                            Basic Information
+                                        </CardTitle>
+                                        <CardDescription>
+                                            Enter the basic details about the job position
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="title">Job Title *</Label>
                                             <Input
-                                                id="company_name"
-                                                placeholder="e.g. Tech Innovations Inc."
-                                                value={formData.company_name}
-                                                onChange={(e) => handleInputChange('company_name', e.target.value)}
-                                                className="pl-10"
+                                                id="title"
+                                                placeholder="e.g. Senior Frontend Developer"
+                                                value={formData.title}
+                                                onChange={(e) => handleInputChange('title', e.target.value)}
                                             />
                                         </div>
-                                    </div>
 
-                                    <div className="space-y-2">
-                                        <Label htmlFor="company_details">About the Company (Optional)</Label>
-                                        <Textarea
-                                            id="company_details"
-                                            placeholder="Brief description about your company, culture, mission, or what makes it unique..."
-                                            value={formData.company_details}
-                                            onChange={(e) => handleInputChange('company_details', e.target.value)}
-                                            className="min-h-[80px] resize-none"
-                                        />
-                                        <p className="text-xs text-muted-foreground">
-                                            This information will be included in AI-generated job descriptions to make them more personalized.
-                                        </p>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4">
                                         <div className="space-y-2">
-                                            <Label htmlFor="location">Location *</Label>
+                                            <Label htmlFor="company_name">Company Name *</Label>
                                             <div className="relative">
-                                                <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                                <Building className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                                                 <Input
-                                                    id="location"
-                                                    placeholder="e.g. Remote, Mumbai"
-                                                    value={formData.location}
-                                                    onChange={(e) => handleInputChange('location', e.target.value)}
+                                                    id="company_name"
+                                                    placeholder="e.g. Tech Innovations Inc."
+                                                    value={formData.company_name}
+                                                    onChange={(e) => handleInputChange('company_name', e.target.value)}
                                                     className="pl-10"
                                                 />
                                             </div>
                                         </div>
 
                                         <div className="space-y-2">
-                                            <Label htmlFor="job_type">Job Type</Label>
+                                            <Label htmlFor="company_details">About the Company (Optional)</Label>
+                                            <Textarea
+                                                id="company_details"
+                                                placeholder="Brief description about your company, culture, mission, or what makes it unique..."
+                                                value={formData.company_details}
+                                                onChange={(e) => handleInputChange('company_details', e.target.value)}
+                                                className="min-h-[80px] resize-none"
+                                            />
+                                            <p className="text-xs text-muted-foreground">
+                                                This information will be included in AI-generated job descriptions to make them more personalized.
+                                            </p>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="location">Location *</Label>
+                                                <div className="relative">
+                                                    <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                                    <Input
+                                                        id="location"
+                                                        placeholder="e.g. Remote, Mumbai"
+                                                        value={formData.location}
+                                                        onChange={(e) => handleInputChange('location', e.target.value)}
+                                                        className="pl-10"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <Label htmlFor="job_type">Job Type</Label>
+                                                <Select
+                                                    value={formData.job_type}
+                                                    onValueChange={(value) => handleInputChange('job_type', value)}
+                                                >
+                                                    <SelectTrigger>
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {JOB_TYPES.map(type => (
+                                                            <SelectItem key={type} value={type}>
+                                                                {type}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <Label htmlFor="salary">Salary (Optional)</Label>
+                                                <div className="relative">
+                                                    <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                                    <Input
+                                                        id="salary"
+                                                        placeholder="e.g. ₹8–15 LPA"
+                                                        value={formData.salary}
+                                                        onChange={(e) => handleInputChange('salary', e.target.value)}
+                                                        className="pl-10"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <Label htmlFor="interview_duration">Interview Duration (minutes) *</Label>
+                                                <div className="relative">
+                                                    <Clock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                                    <Input
+                                                        id="interview_duration"
+                                                        type="number"
+                                                        min="15"
+                                                        max="180"
+                                                        placeholder="45"
+                                                        value={formData.interview_duration}
+                                                        onChange={(e) => handleInputChange('interview_duration', e.target.value)}
+                                                        className="pl-10"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label htmlFor="end_date">Application Deadline *</Label>
+                                            <div className="relative">
+                                                <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                                <Input
+                                                    id="end_date"
+                                                    type="date"
+                                                    min={getMinDate()}
+                                                    value={formData.end_date}
+                                                    onChange={(e) => handleInputChange('end_date', e.target.value)}
+                                                    className="pl-10"
+                                                />
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                {/* Skills and Experience */}
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="text-lg">Skills & Experience</CardTitle>
+                                        <CardDescription>
+                                            Select required skills and experience level for this position
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <div className="space-y-2">
+                                            <Label>Required Skills *</Label>
+                                            <JobSkillSelector
+                                                selectedSkills={skills}
+                                                onSkillsChange={setSkills}
+                                                placeholder="Select required skills..."
+                                                maxSkills={15}
+                                            />
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label>Experience Level</Label>
                                             <Select
-                                                value={formData.job_type}
-                                                onValueChange={(value) => handleInputChange('job_type', value)}
+                                                value={experienceLevel}
+                                                onValueChange={(value: 'entry' | 'mid' | 'senior') => setExperienceLevel(value)}
                                             >
                                                 <SelectTrigger>
                                                     <SelectValue />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    {JOB_TYPES.map(type => (
-                                                        <SelectItem key={type} value={type}>
-                                                            {type}
+                                                    {EXPERIENCE_LEVELS.map(level => (
+                                                        <SelectItem key={level.value} value={level.value}>
+                                                            {level.label}
                                                         </SelectItem>
                                                     ))}
                                                 </SelectContent>
                                             </Select>
                                         </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="space-y-2">
-                                            <Label htmlFor="salary">Salary (Optional)</Label>
-                                            <div className="relative">
-                                                <DollarSign className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                                <Input
-                                                    id="salary"
-                                                    placeholder="e.g. ₹8–15 LPA"
-                                                    value={formData.salary}
-                                                    onChange={(e) => handleInputChange('salary', e.target.value)}
-                                                    className="pl-10"
-                                                />
-                                            </div>
-                                        </div>
 
                                         <div className="space-y-2">
-                                            <Label htmlFor="interview_duration">Interview Duration (minutes) *</Label>
-                                            <div className="relative">
-                                                <Clock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                                <Input
-                                                    id="interview_duration"
-                                                    type="number"
-                                                    min="15"
-                                                    max="180"
-                                                    placeholder="45"
-                                                    value={formData.interview_duration}
-                                                    onChange={(e) => handleInputChange('interview_duration', e.target.value)}
-                                                    className="pl-10"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <Label htmlFor="end_date">Application Deadline *</Label>
-                                        <div className="relative">
-                                            <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                            <Input
-                                                id="end_date"
-                                                type="date"
-                                                min={getMinDate()}
-                                                value={formData.end_date}
-                                                onChange={(e) => handleInputChange('end_date', e.target.value)}
-                                                className="pl-10"
+                                            <Label htmlFor="custom_requirements">Additional Requirements (Optional)</Label>
+                                            <Textarea
+                                                id="custom_requirements"
+                                                placeholder="Any specific requirements not covered by skills..."
+                                                value={formData.custom_requirements}
+                                                onChange={(e) => handleInputChange('custom_requirements', e.target.value)}
+                                                rows={3}
                                             />
                                         </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
+                                    </CardContent>
+                                </Card>
+                            </div>
 
-                            {/* Skills and Experience */}
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="text-lg">Skills & Experience</CardTitle>
-                                    <CardDescription>
-                                        Select required skills and experience level for this position
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div className="space-y-2">
-                                        <Label>Required Skills *</Label>
-                                        <JobSkillSelector
-                                            selectedSkills={skills}
-                                            onSkillsChange={setSkills}
-                                            placeholder="Select required skills..."
-                                            maxSkills={15}
-                                        />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <Label>Experience Level</Label>
-                                        <Select
-                                            value={experienceLevel}
-                                            onValueChange={(value: 'entry' | 'mid' | 'senior') => setExperienceLevel(value)}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {EXPERIENCE_LEVELS.map(level => (
-                                                    <SelectItem key={level.value} value={level.value}>
-                                                        {level.label}
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <Label htmlFor="custom_requirements">Additional Requirements (Optional)</Label>
-                                        <Textarea
-                                            id="custom_requirements"
-                                            placeholder="Any specific requirements not covered by skills..."
-                                            value={formData.custom_requirements}
-                                            onChange={(e) => handleInputChange('custom_requirements', e.target.value)}
-                                            rows={3}
-                                        />
-                                    </div>
-                                </CardContent>
-                            </Card>
+                            {/* Right Column - AI Description Generator */}
+                            <div className="space-y-6">
+                                <AIDescriptionGenerator
+                                    formData={formData}
+                                    skills={skills}
+                                    experienceLevel={experienceLevel}
+                                    description={description}
+                                    onDescriptionChange={setDescription}
+                                    customRequirements={formData.custom_requirements}
+                                    companyDetails={formData.company_details}
+                                />
+                            </div>
                         </div>
+                    </ScrollArea>
 
-                        {/* Right Column - AI Description Generator */}
-                        <div className="space-y-6">
-                            <AIDescriptionGenerator
-                                formData={formData}
-                                skills={skills}
-                                experienceLevel={experienceLevel}
-                                description={description}
-                                onDescriptionChange={setDescription}
-                                customRequirements={formData.custom_requirements}
-                                companyDetails={formData.company_details}
-                            />
+                    {/* Fixed Action Buttons */}
+                    <div className="border-t bg-background/95 backdrop-blur-sm flex-shrink-0">
+                        <div className="flex flex-col sm:flex-row gap-3 justify-end p-4">
+                            <Button
+                                variant="outline"
+                                onClick={handleClose}
+                                disabled={loading}
+                                className="flex-1 sm:flex-none"
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                variant="outline"
+                                onClick={handleSaveDraft}
+                                disabled={loading}
+                                className="flex-1 sm:flex-none"
+                            >
+                                {loading ? (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : (
+                                    <Save className="mr-2 h-4 w-4" />
+                                )}
+                                Save as Draft
+                            </Button>
+                            <Button
+                                onClick={handlePublish}
+                                disabled={loading}
+                                className="flex-1 sm:flex-none"
+                            >
+                                {loading ? (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : (
+                                    <Briefcase className="mr-2 h-4 w-4" />
+                                )}
+                                Create Job
+                            </Button>
                         </div>
                     </div>
-                </ScrollArea>
-
-                <Separator />
-
-                {/* Action Buttons */}
-                <div className="flex flex-col sm:flex-row gap-3 justify-end pt-4">
-                    <Button
-                        variant="outline"
-                        onClick={handleSaveDraft}
-                        disabled={loading}
-                        className="flex-1 sm:flex-none"
-                    >
-                        {loading ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                            <Save className="mr-2 h-4 w-4" />
-                        )}
-                        Save as Draft
-                    </Button>
-                    <Button
-                        onClick={handlePublish}
-                        disabled={loading}
-                        className="flex-1 sm:flex-none"
-                    >
-                        {loading ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                            <Send className="mr-2 h-4 w-4" />
-                        )}
-                        Publish Job
-                    </Button>
                 </div>
             </DialogContent>
         </Dialog>

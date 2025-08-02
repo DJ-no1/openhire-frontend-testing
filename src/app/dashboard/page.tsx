@@ -27,7 +27,7 @@ const navigationItems = [
     },
     {
         label: 'Browse Jobs',
-        href: '/jobs',
+        href: '/dashboard/jobs',
         icon: <Search className="h-4 w-4" />
     },
     {

@@ -60,41 +60,20 @@ export const AIDescriptionGenerator: React.FC<AIDescriptionGeneratorProps> = ({
                 company_details: companyDetails
             };
 
-            const response = await aiService.generateJobDescription(request);
-
-            if (response.success && response.data) {
-                onDescriptionChange(response.data);
-                toast.success('Job description generated successfully!');
-            } else {
-                // Fallback to basic template
-                const fallbackDescription = aiService.generateFallbackDescription(request);
-                onDescriptionChange(fallbackDescription);
-                toast.warning('AI service unavailable. Generated basic template instead.');
-            }
+            // Generate description using frontend-only template system
+            const generatedDescription = aiService.generateFallbackDescription(request);
+            onDescriptionChange(generatedDescription);
+            toast.success('Job description generated successfully!');
         } catch (error) {
             console.error('Error generating description:', error);
-            // Fallback to basic template
-            const request: GenerateDescriptionRequest = {
-                title: formData.title,
-                company_name: formData.company_name,
-                skills: skills,
-                experience_level: experienceLevel,
-                job_type: formData.job_type,
-                location: formData.location,
-                salary: formData.salary,
-                custom_requirements: customRequirements,
-                company_details: companyDetails
-            };
-            const fallbackDescription = aiService.generateFallbackDescription(request);
-            onDescriptionChange(fallbackDescription);
-            toast.warning('AI service unavailable. Generated basic template instead.');
+            toast.error('Failed to generate job description. Please try again.');
         } finally {
             setGenerating(false);
         }
     };
 
     const handleRegenerateSection = async (section: keyof JobDescription) => {
-        // For now, regenerate the entire description
+        // For now, regenerate the entire description using frontend-only system
         // In a full implementation, you could have section-specific generation
         await handleGenerate();
     };
@@ -213,10 +192,10 @@ export const AIDescriptionGenerator: React.FC<AIDescriptionGeneratorProps> = ({
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <Wand2 className="h-5 w-5" />
-                        AI-Powered Job Description
+                        Smart Job Description Generator
                     </CardTitle>
                     <CardDescription>
-                        Generate a professional job description using AI based on your job details
+                        Generate a professional job description based on your job details
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
