@@ -2,17 +2,24 @@
 import { API_CONFIG } from './api';
 import { DEMO_JOBS, simulateApiDelay } from './demo-data';
 
+export interface JobDescription {
+    requirements: string[];
+    responsibilities: string[];
+    benefits: string[];
+    experience: string;
+}
+
 export interface CreateJobData {
     recruiter_id: string;
     title: string;
-    company: string;
+    company_name: string;
     location: string;
-    description: string;
+    description: JobDescription;
     salary?: string;
     skills: string;
     job_type: string;
     end_date: string;
-    interview_duration: string;
+    interview_duration: number; // Changed to number (minutes)
     status: 'active' | 'inactive';
 }
 
@@ -20,14 +27,14 @@ export interface Job {
     id: string;
     recruiter_id: string;
     title: string;
-    company: string;
+    company_name: string;
     location: string;
-    description: string;
+    description: JobDescription;
     salary?: string;
     skills: string;
     job_type: string;
     end_date: string;
-    interview_duration: string;
+    interview_duration: number;
     status: 'active' | 'inactive' | 'expired';
     created_at: string;
     updated_at: string;
@@ -325,7 +332,7 @@ export const validateJobData = (jobData: Partial<CreateJobData>): string[] => {
         errors.push('Job title is required');
     }
 
-    if (!jobData.company?.trim()) {
+    if (!jobData.company_name?.trim()) {
         errors.push('Company name is required');
     }
 
@@ -333,8 +340,8 @@ export const validateJobData = (jobData: Partial<CreateJobData>): string[] => {
         errors.push('Location is required');
     }
 
-    if (!jobData.description?.trim()) {
-        errors.push('Job description is required');
+    if (!jobData.description || !jobData.description.requirements?.length || !jobData.description.responsibilities?.length) {
+        errors.push('Job description with requirements and responsibilities is required');
     }
 
     if (!jobData.end_date) {
@@ -347,8 +354,8 @@ export const validateJobData = (jobData: Partial<CreateJobData>): string[] => {
         }
     }
 
-    if (!jobData.interview_duration?.trim()) {
-        errors.push('Interview duration is required');
+    if (!jobData.interview_duration || jobData.interview_duration <= 0) {
+        errors.push('Interview duration is required and must be greater than 0');
     }
 
     if (!jobData.skills?.trim()) {
@@ -362,14 +369,14 @@ export const formatJobData = (formData: any, skills: string[], userId: string): 
     return {
         recruiter_id: userId,
         title: formData.title,
-        company: formData.company,
+        company_name: formData.company_name,
         location: formData.location,
         description: formData.description,
         salary: formData.salary || '',
         skills: skills.join(', '),
-        job_type: 'full-time', // Default value
-        end_date: formData.expiry,
-        interview_duration: formData.duration,
+        job_type: formData.job_type || 'Full-time',
+        end_date: formData.end_date,
+        interview_duration: parseInt(formData.interview_duration) || 45,
         status: 'active' // Default to active
     };
 };

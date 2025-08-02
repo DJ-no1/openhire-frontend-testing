@@ -38,7 +38,7 @@ interface Job {
     company: string;
     location: string;
     salary?: string;
-    skills: string[];
+    skills: string[] | string;
     status: 'active' | 'inactive' | 'expired';
     created_at: string;
     end_date: string;
@@ -96,6 +96,36 @@ export default function JobDetailPage() {
     const convertApiJobToLocal = (apiJob: JobType): Job => {
         console.log('Converting API job for details (real data only):', apiJob);
 
+        // Helper function to safely extract string from description object or string
+        const extractStringFromDescription = (desc: any): string => {
+            if (typeof desc === 'string') return desc;
+            if (typeof desc === 'object' && desc !== null) {
+                // If it's a structured description object, create a readable string
+                const parts = [];
+                if (desc.responsibilities?.length) {
+                    parts.push(`**Responsibilities:**\n${desc.responsibilities.join('\n• ')}`);
+                }
+                if (desc.requirements?.length) {
+                    parts.push(`**Requirements:**\n${desc.requirements.join('\n• ')}`);
+                }
+                if (desc.benefits?.length) {
+                    parts.push(`**Benefits:**\n${desc.benefits.join('\n• ')}`);
+                }
+                if (desc.experience) {
+                    parts.push(`**Experience:**\n${desc.experience}`);
+                }
+                return parts.join('\n\n') || 'No description available';
+            }
+            return 'No description available';
+        };
+
+        const extractArrayField = (desc: any, field: string): string => {
+            if (typeof desc === 'object' && desc !== null && Array.isArray(desc[field])) {
+                return desc[field].join('\n• ');
+            }
+            return `${field.charAt(0).toUpperCase() + field.slice(1)} not specified`;
+        };
+
         return {
             ...apiJob,
             salary: apiJob.salary || 'Not specified',
@@ -104,12 +134,13 @@ export default function JobDetailPage() {
             job_type: apiJob.job_type || 'Full-time',
             experience_level: 'Not specified',
             // Only use real data from API, no auto-generation
-            company: (apiJob as any).company || 'Company Not Specified',
+            company: (apiJob as any).company || (apiJob as any).company_name || 'Company Not Specified',
             location: (apiJob as any).location || 'Location Not Specified',
             interview_duration: (apiJob as any).interview_duration || 'Not specified',
             status: (apiJob as any).status || 'active' as const,
-            requirements: (apiJob as any).requirements || 'Requirements not specified',
-            benefits: (apiJob as any).benefits || 'Benefits not specified'
+            description: extractStringFromDescription(apiJob.description),
+            requirements: extractArrayField(apiJob.description, 'requirements'),
+            benefits: extractArrayField(apiJob.description, 'benefits')
         };
     };
 
@@ -458,11 +489,20 @@ export default function JobDetailPage() {
                             </CardHeader>
                             <CardContent>
                                 <div className="flex flex-wrap gap-2">
-                                    {job.skills.map((skill) => (
-                                        <Badge key={skill} variant="secondary">
-                                            {skill}
-                                        </Badge>
-                                    ))}
+                                    {Array.isArray(job.skills)
+                                        ? job.skills.map((skill: string) => (
+                                            <Badge key={skill} variant="secondary">
+                                                {skill}
+                                            </Badge>
+                                        ))
+                                        : typeof job.skills === 'string'
+                                            ? job.skills.split(',').map((skill: string) => (
+                                                <Badge key={skill.trim()} variant="secondary">
+                                                    {skill.trim()}
+                                                </Badge>
+                                            ))
+                                            : []
+                                    }
                                 </div>
                             </CardContent>
                         </Card>

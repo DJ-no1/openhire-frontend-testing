@@ -4,7 +4,10 @@ import { ProtectedRoute } from '@/components/protected-route';
 import { AppNavigation } from '@/components/app-navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { CreateJobModal } from '@/components/create-job-modal';
 import { useAuth } from '@/hooks/use-auth';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import {
     Briefcase,
     Users,
@@ -22,8 +25,8 @@ const navigationItems = [
         icon: <BarChart3 className="h-4 w-4" />
     },
     {
-        label: 'Jobs',
-        href: '/recruiters/dashboard/jobs',
+        label: 'My Jobs',
+        href: '/recruiters/jobs',
         icon: <Briefcase className="h-4 w-4" />
     },
     {
@@ -40,6 +43,13 @@ const navigationItems = [
 
 export default function RecruiterDashboardPage() {
     const { user } = useAuth();
+    const router = useRouter();
+    const [createJobModalOpen, setCreateJobModalOpen] = useState(false);
+
+    const handleJobCreated = () => {
+        // Refresh the page or update data when a job is created
+        window.location.reload();
+    };
 
     const stats = [
         {
@@ -122,7 +132,10 @@ export default function RecruiterDashboardPage() {
                     {/* Quick Actions */}
                     <div className="mb-8">
                         <div className="flex flex-wrap gap-4">
-                            <Button className="flex items-center space-x-2">
+                            <Button
+                                className="flex items-center space-x-2"
+                                onClick={() => setCreateJobModalOpen(true)}
+                            >
                                 <PlusCircle className="h-4 w-4" />
                                 <span>Post New Job</span>
                             </Button>
@@ -257,6 +270,13 @@ export default function RecruiterDashboardPage() {
                         </Card>
                     </div>
                 </div>
+
+                {/* Create Job Modal */}
+                <CreateJobModal
+                    open={createJobModalOpen}
+                    onOpenChange={setCreateJobModalOpen}
+                    onJobCreated={handleJobCreated}
+                />
             </div>
         </ProtectedRoute>
     );

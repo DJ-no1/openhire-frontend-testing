@@ -95,10 +95,33 @@ export default function JobsPage() {
             return `/j/${hash}`;
         };
 
+        // Convert structured description to plain text for display
+        const convertDescriptionToText = (description: any): string => {
+            if (typeof description === 'string') {
+                return description;
+            }
+
+            if (description && typeof description === 'object') {
+                const parts = [];
+                if (description.responsibilities?.length) {
+                    parts.push(`Responsibilities: ${description.responsibilities.join(', ')}`);
+                }
+                if (description.requirements?.length) {
+                    parts.push(`Requirements: ${description.requirements.join(', ')}`);
+                }
+                if (description.experience) {
+                    parts.push(`Experience: ${description.experience}`);
+                }
+                return parts.join('. ') || 'No description available';
+            }
+
+            return 'No description available';
+        };
+
         return {
             id: apiJob.id,
             title: apiJob.title,
-            description: apiJob.description || 'No description available',
+            description: convertDescriptionToText(apiJob.description),
             salary: apiJob.salary || 'Not specified',
             skills: apiJob.skills ? apiJob.skills.split(', ') : [],
             job_type: apiJob.job_type || 'Full-time',
@@ -107,9 +130,9 @@ export default function JobsPage() {
             recruiter_id: apiJob.recruiter_id,
             job_link: (apiJob as any).job_link || generateJobLink(apiJob.id), // Use existing job_link or generate one
             // Only use real data from API, no auto-generation
-            company: (apiJob as any).company || 'Company Not Specified',
+            company: (apiJob as any).company_name || (apiJob as any).company || 'Company Not Specified',
             location: (apiJob as any).location || 'Location Not Specified',
-            interview_duration: (apiJob as any).interview_duration || 'Not specified',
+            interview_duration: `${(apiJob as any).interview_duration || 45} min`,
             applications_count: (apiJob as any).applications_count || 0,
             status: (apiJob as any).status || 'active' as const
         };
