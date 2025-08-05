@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@dannymoerkerke/audio-recorder": "^1.1.1",
     "@langchain/community": "^0.3.49",
     "@langchain/google-genai": "^0.2.16",
     "@radix-ui/react-avatar": "^1.1.10",

@@ -1,108 +1,81 @@
 "use client";
-import React from "react";
+import React, { useRef, useState } from "react";
+import { createClient } from "@supabase/supabase-js";
+
+// Load Supabase credentials from environment variables
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 const BoardInterviewPage = () => {
-    return (
-        <div style={{
-            minHeight: '100vh',
-            background: '#18191c',
-            color: 'white',
-            padding: 24,
-            fontFamily: 'monospace',
-            boxSizing: 'border-box'
-        }}>
-            <div style={{
-                border: '2px solid #aaa',
-                borderRadius: 8,
-                padding: 8,
-                margin: '0 auto',
-                maxWidth: 900,
-                background: 'rgba(30,30,30,0.95)'
-            }}>
-                <div style={{ border: '1px solid #aaa', borderRadius: 4, padding: 8, marginBottom: 8, textAlign: 'center' }}>
-                    LAYOUT OVERLAY....
-                </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                    {/* Left column: bot overlay + end interview */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        <div style={{ border: '1px solid #aaa', borderRadius: 4, padding: 8, width: 100, height: 60, textAlign: 'center', fontSize: 12 }}>
-                            BOT OVERLAY<br />FACE
-                        </div>
-                        <button style={{
-                            border: '1px solid #aaa',
-                            borderRadius: 4,
-                            padding: '8px 12px',
-                            marginTop: 8,
-                            background: '#222',
-                            color: 'white',
-                            fontWeight: 'bold',
-                            cursor: 'pointer',
-                            fontSize: 13
-                        }}>
-                            END INTERVIEW
+    const videoRef = useRef<HTMLVideoElement | null>(null);
+    const canvasRef = useRef<HTMLCanvasElement | null>(null);
+    const [imageUrl, setImageUrl] = useState("");
+    const [uploading, setUploading] = useState(false);
+
+    // Start camera on mount
+    React.useEffect(() => {
+        if (videoRef.current) {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then((stream) => {
+                    if (videoRef.current) {
+                        videoRef.current.srcObject = stream;
+                    }
+                });
+        }
+    }, []);
+
+    const captureImage = () => {
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        if (video && canvas) {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext("2d");
+            if (ctx) {
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const dataUrl = canvas.toDataURL("image/png");
+                setImageUrl(dataUrl);
+            }
+        }
+    };
+
+    const uploadToSupabase = async () => {
+        if (!imageUrl) return;
+        setUploading(true);
+        const res = await fetch(imageUrl);
+        const blob = await res.blob();
+        const fileName = `board-interview-${Date.now()}.png`;
+        const { data, error } = await supabase.storage.from("pictures").upload(fileName, blob, {
+            contentType: "image/png",
+        });
+        setUploading(false);
+        if (error) {
+            alert("Upload failed: " + error.message);
+        } else {
+            alert("Image uploaded!");
+        }
+    };
+
+    return <>
+        <div className="flex flex-col items-center justify-center min-h-screen py-2">
+            <h1 className="text-4xl font-bold">Board Interview</h1>
+            <p className="mt-4 text-lg">Prepare for your board interview with these tips and resources.</p>
+            <div className="mt-8 flex flex-col items-center">
+                <video ref={videoRef} autoPlay playsInline width={320} height={240} className="rounded border" />
+                <canvas ref={canvasRef} style={{ display: "none" }} />
+                <button onClick={captureImage} className="mt-4 px-4 py-2 bg-blue-600 text-white rounded">Capture Photo</button>
+                {imageUrl && (
+                    <>
+                        <img src={imageUrl} alt="Captured" className="mt-4 rounded border w-64" />
+                        <button onClick={uploadToSupabase} disabled={uploading} className="mt-2 px-4 py-2 bg-green-600 text-white rounded">
+                            {uploading ? "Uploading..." : "Upload to Supabase"}
                         </button>
-                    </div>
-                    {/* Center: video feed */}
-                    <div style={{
-                        flex: 1,
-                        border: '1px solid #aaa',
-                        borderRadius: 4,
-                        minHeight: 260,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: 18,
-                        marginRight: 8
-                    }}>
-                        VIDEO_FEED...FROM...CAMERA
-                    </div>
-                    {/* Right: conversation */}
-                    <div style={{
-                        width: 260,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        border: '1px solid #aaa',
-                        borderRadius: 4,
-                        minHeight: 260,
-                        padding: 0
-                    }}>
-                        <div style={{
-                            borderBottom: '1px solid #aaa',
-                            padding: 8,
-                            textAlign: 'center',
-                            fontSize: 14
-                        }}>
-                            CONVERSATION
-                        </div>
-                        <div style={{ flex: 1 }} />
-                        <div style={{
-                            borderTop: '1px solid #aaa',
-                            padding: 8,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 8
-                        }}>
-                            <input
-                                type="text"
-                                placeholder="TYPING"
-                                style={{
-                                    flex: 1,
-                                    background: '#222',
-                                    color: 'white',
-                                    border: '1px solid #555',
-                                    borderRadius: 4,
-                                    padding: '6px 10px',
-                                    fontSize: 13
-                                }}
-                                disabled
-                            />
-                            <span style={{ fontSize: 18, opacity: 0.7 }}>🎤</span>
-                        </div>
-                    </div>
-                </div>
+                    </>
+                )}
             </div>
         </div>
-    );
+    </>
 };
 
 export default BoardInterviewPage;

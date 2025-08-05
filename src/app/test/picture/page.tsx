@@ -1,12 +1,20 @@
-
 "use client";
-import React, { useRef, useState, useEffect } from "react";
+
+
+// Dynamically import the audio-recorder web component only on the client
+import * as React from "react";
+import { useRef, useState, useEffect } from "react";
+
+
+
+import { useRouter } from 'next/navigation';
 import { Dialog, DialogTrigger, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue, SelectLabel } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
+
+
 
 
 // FullScreenShareButton component
@@ -68,26 +76,29 @@ function InterviewTips() {
 }
 
 function DeviceCheckPanel() {
+    // All state and refs at the top
+    const [cameraChecked, setCameraChecked] = useState(false);
+    const [micChecked, setMicChecked] = useState(false);
+    const [redirecting, setRedirecting] = useState(false);
+    const router = useRouter();
     const [showCamera, setShowCamera] = useState(false);
     const [showMic, setShowMic] = useState(false);
     const [showConfig, setShowConfig] = useState(false);
     const [videoStream, setVideoStream] = useState<MediaStream | null>(null);
     const [micStream, setMicStream] = useState<MediaStream | null>(null);
-    const [micLevel, setMicLevel] = useState(0);
     const [videoError, setVideoError] = useState<string | null>(null);
     const [micError, setMicError] = useState<string | null>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
-    const audioContextRef = useRef<AudioContext | null>(null);
-    const analyserRef = useRef<AnalyserNode | null>(null);
-    const dataArrayRef = useRef<Uint8Array | null>(null);
-    const rafRef = useRef<number | null>(null);
-
-    // Device config state
+    const waveformContainerRef = useRef<HTMLDivElement>(null);
     const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
     const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
     const [selectedVideo, setSelectedVideo] = useState<string | undefined>(undefined);
     const [selectedAudio, setSelectedAudio] = useState<string | undefined>(undefined);
+    const [pendingVideo, setPendingVideo] = useState<string | undefined>(undefined);
+    const [pendingAudio, setPendingAudio] = useState<string | undefined>(undefined);
     const [configLoading, setConfigLoading] = useState(false);
+
+    // No imperative rendering needed, use <audio-recorder> directly
 
     // Camera preview logic
     useEffect(() => {
@@ -104,8 +115,10 @@ function DeviceCheckPanel() {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: selectedVideo ? { deviceId: { exact: selectedVideo } } : true });
                 setVideoStream(stream);
                 if (videoRef.current) videoRef.current.srcObject = stream;
+                setCameraChecked(true);
             } catch (err) {
                 setVideoError('Could not access camera.');
+                setCameraChecked(false);
             }
         };
         getCam();
@@ -115,20 +128,14 @@ function DeviceCheckPanel() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [showCamera, selectedVideo]);
 
-    // Microphone visualizer logic
+
+    // Microphone logic: just get stream for visualizer
     useEffect(() => {
         if (!showMic) {
             if (micStream) {
                 micStream.getTracks().forEach(track => track.stop());
                 setMicStream(null);
             }
-            if (audioContextRef.current) {
-                if (audioContextRef.current.state !== 'closed') {
-                    audioContextRef.current.close();
-                }
-                audioContextRef.current = null;
-            }
-            if (rafRef.current) cancelAnimationFrame(rafRef.current);
             return;
         }
         setMicError(null);
@@ -136,40 +143,19 @@ function DeviceCheckPanel() {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: selectedAudio ? { deviceId: { exact: selectedAudio } } : true });
                 setMicStream(stream);
-                const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-                audioContextRef.current = audioContext;
-                const source = audioContext.createMediaStreamSource(stream);
-                const analyser = audioContext.createAnalyser();
-                analyser.fftSize = 256;
-                analyserRef.current = analyser;
-                source.connect(analyser);
-                const dataArray = new Uint8Array(analyser.frequencyBinCount);
-                dataArrayRef.current = dataArray;
-                const update = () => {
-                    if (!analyserRef.current || !dataArrayRef.current) return;
-                    analyserRef.current.getByteTimeDomainData(dataArrayRef.current);
-                    // Calculate RMS (root mean square) for mic level
-                    let sum = 0;
-                    for (let i = 0; i < dataArrayRef.current.length; i++) {
-                        const val = (dataArrayRef.current[i] - 128) / 128;
-                        sum += val * val;
-                    }
-                    setMicLevel(Math.sqrt(sum / dataArrayRef.current.length));
-                    rafRef.current = requestAnimationFrame(update);
-                };
-                update();
+                setMicChecked(true);
             } catch (err) {
                 setMicError('Could not access microphone.');
+                setMicChecked(false);
             }
         };
         getMic();
         return () => {
             if (micStream) micStream.getTracks().forEach(track => track.stop());
-            if (audioContextRef.current && audioContextRef.current.state !== 'closed') audioContextRef.current.close();
-            if (rafRef.current) cancelAnimationFrame(rafRef.current);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [showMic, selectedAudio]);
+
 
     // Device config dialog logic
     const fetchDevices = async () => {
@@ -180,15 +166,28 @@ function DeviceCheckPanel() {
             setAudioDevices(devices.filter(d => d.kind === 'audioinput'));
             if (!selectedVideo) setSelectedVideo(devices.find(d => d.kind === 'videoinput')?.deviceId);
             if (!selectedAudio) setSelectedAudio(devices.find(d => d.kind === 'audioinput')?.deviceId);
+            setPendingVideo(selectedVideo ?? devices.find(d => d.kind === 'videoinput')?.deviceId);
+            setPendingAudio(selectedAudio ?? devices.find(d => d.kind === 'audioinput')?.deviceId);
         } finally {
             setConfigLoading(false);
         }
     };
 
+    // When dialog opens, fetch devices and set pending
     useEffect(() => {
-        if (showConfig) fetchDevices();
+        if (showConfig) {
+            fetchDevices();
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [showConfig]);
+
+    // Apply settings handler
+    const handleApplySettings = () => {
+        setSelectedVideo(pendingVideo);
+        setSelectedAudio(pendingAudio);
+        setShowConfig(false);
+    };
+
 
     return (
         <Card className="bg-[#232326] text-white flex flex-col items-center mb-6 p-8">
@@ -204,24 +203,23 @@ function DeviceCheckPanel() {
             <div className="flex flex-col w-full gap-3 items-center">
                 <Button variant="secondary" className="w-full font-semibold text-base flex items-center gap-2 justify-center" onClick={() => { setShowCamera(v => !v); setShowMic(false); }}>
                     <span className="i-lucide-video w-4 h-4" /> Check Camera
+                    {cameraChecked && <span className="ml-2 text-green-400">✔</span>}
                 </Button>
                 {showCamera && (
                     <div className="w-full flex flex-col items-center mt-2 gap-2">
                         <video ref={videoRef} autoPlay playsInline muted className="w-[400px] h-[200px] rounded-lg bg-[#232326] border border-[#333]" style={{ background: '#232326' }} />
                         {videoError && <div className="text-red-400 text-xs mt-1">{videoError}</div>}
-                        <FullScreenShareButton />
                     </div>
                 )}
+                {/* Move FullScreenShareButton here, always visible below camera, above mic */}
+                <FullScreenShareButton />
                 <Button variant="secondary" className="w-full font-semibold text-base flex items-center gap-2 justify-center" onClick={() => { setShowMic(v => !v); setShowCamera(false); }}>
                     <span className="i-lucide-mic w-4 h-4" /> Check Microphone
+                    {micChecked && <span className="ml-2 text-green-400">✔</span>}
                 </Button>
                 {showMic && (
-                    <div className="w-full flex flex-col items-center mt-2">
-                        <div className="w-[400px] h-[40px] rounded-lg bg-[#232326] border border-[#333] flex items-center px-4">
-                            <div className="w-full h-3 bg-[#18191c] rounded-full overflow-hidden">
-                                <div className="h-3 rounded-full transition-all duration-100" style={{ width: `${Math.min(100, Math.round(micLevel * 200))}%`, background: micLevel > 0.05 ? '#3cf6ff' : '#444' }} />
-                            </div>
-                        </div>
+                    <div className="w-full flex flex-col items-center mt-2 gap-2">
+                        <AudioVisualizer stream={micStream} />
                         {micError && <div className="text-red-400 text-xs mt-1">{micError}</div>}
                     </div>
                 )}
@@ -237,7 +235,7 @@ function DeviceCheckPanel() {
                         <div className="flex flex-col gap-4">
                             <div>
                                 <Label htmlFor="video-device" className="mb-1 block">Camera</Label>
-                                <Select value={selectedVideo} onValueChange={setSelectedVideo}>
+                                <Select value={pendingVideo} onValueChange={setPendingVideo}>
                                     <SelectTrigger id="video-device" className="w-full mt-1">
                                         <SelectValue placeholder="Select camera device" />
                                     </SelectTrigger>
@@ -248,7 +246,15 @@ function DeviceCheckPanel() {
                                             videoDevices
                                                 .filter(device => device.deviceId && device.deviceId !== "")
                                                 .map(device => (
-                                                    <SelectItem key={device.deviceId} value={device.deviceId}>{device.label || `Camera (${device.deviceId.slice(-4)})`}</SelectItem>
+                                                    <SelectItem key={device.deviceId} value={device.deviceId}>
+                                                        <span style={{
+                                                            display: 'block',
+                                                            maxWidth: '320px',
+                                                            overflow: 'hidden',
+                                                            textOverflow: 'ellipsis',
+                                                            whiteSpace: 'nowrap',
+                                                        }}>{device.label || `Camera (${device.deviceId.slice(-4)})`}</span>
+                                                    </SelectItem>
                                                 ))
                                         )}
                                     </SelectContent>
@@ -256,7 +262,7 @@ function DeviceCheckPanel() {
                             </div>
                             <div>
                                 <Label htmlFor="audio-device" className="mb-1 block">Microphone</Label>
-                                <Select value={selectedAudio} onValueChange={setSelectedAudio}>
+                                <Select value={pendingAudio} onValueChange={setPendingAudio}>
                                     <SelectTrigger id="audio-device" className="w-full mt-1">
                                         <SelectValue placeholder="Select microphone device" />
                                     </SelectTrigger>
@@ -267,7 +273,15 @@ function DeviceCheckPanel() {
                                             audioDevices
                                                 .filter(device => device.deviceId && device.deviceId !== "")
                                                 .map(device => (
-                                                    <SelectItem key={device.deviceId} value={device.deviceId}>{device.label || `Microphone (${device.deviceId.slice(-4)})`}</SelectItem>
+                                                    <SelectItem key={device.deviceId} value={device.deviceId}>
+                                                        <span style={{
+                                                            display: 'block',
+                                                            maxWidth: '320px',
+                                                            overflow: 'hidden',
+                                                            textOverflow: 'ellipsis',
+                                                            whiteSpace: 'nowrap',
+                                                        }}>{device.label || `Microphone (${device.deviceId.slice(-4)})`}</span>
+                                                    </SelectItem>
                                                 ))
                                         )}
                                     </SelectContent>
@@ -275,14 +289,25 @@ function DeviceCheckPanel() {
                             </div>
                             <div className="flex gap-2 mt-2">
                                 <Button variant="secondary" type="button" onClick={fetchDevices} className="flex-1 flex items-center gap-2"><span className="i-lucide-refresh-cw w-4 h-4" /> Refresh devices</Button>
-                                <Button variant="default" type="button" className="flex-1">Apply settings</Button>
+                                <Button variant="default" type="button" className="flex-1" onClick={handleApplySettings}>Apply settings</Button>
                             </div>
                         </div>
                     </DialogContent>
                 </Dialog>
-                <Button disabled className="w-full bg-[#444] text-[#bbb] font-medium text-base opacity-70 cursor-not-allowed mt-2">Check Devices First</Button>
+                <Button
+                    className={`w-full font-medium text-base mt-2 ${cameraChecked && micChecked ? 'bg-[#3cf6ff] text-black hover:bg-[#2ad4e0]' : 'bg-[#444] text-[#bbb] opacity-70 cursor-not-allowed'}`}
+                    disabled={!(cameraChecked && micChecked) || redirecting}
+                    onClick={() => {
+                        if (cameraChecked && micChecked) {
+                            setRedirecting(true);
+                            router.push('/test/picture/board');
+                        }
+                    }}
+                >
+                    Go for Interview
+                </Button>
             </div>
-        </Card>
+        </Card >
     );
 }
 
@@ -304,4 +329,61 @@ const InterviewStartPage = () => {
     );
 };
 
+
 export default InterviewStartPage;
+
+
+// AudioVisualizer: Standalone audio visualization component
+function AudioVisualizer({ stream }: { stream: MediaStream | null }) {
+    const canvasRef = React.useRef<HTMLCanvasElement>(null);
+    const animationRef = React.useRef<number | undefined>(undefined);
+    const audioContextRef = React.useRef<AudioContext | null>(null);
+    const analyserRef = React.useRef<AnalyserNode | null>(null);
+    const sourceRef = React.useRef<MediaStreamAudioSourceNode | null>(null);
+
+    React.useEffect(() => {
+        if (!stream || !canvasRef.current) return;
+        const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 64;
+        const source = audioCtx.createMediaStreamSource(stream);
+        source.connect(analyser);
+        audioContextRef.current = audioCtx;
+        analyserRef.current = analyser;
+        sourceRef.current = source;
+
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+
+        function draw() {
+            if (!ctx || !analyserRef.current) return;
+            analyserRef.current.getByteFrequencyData(dataArray);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const barWidth = (canvas.width / bufferLength) - 2;
+            for (let i = 0; i < bufferLength; i++) {
+                const barHeight = (dataArray[i] / 255) * canvas.height * 0.8;
+                ctx.fillStyle = '#3cf6ff';
+                ctx.fillRect(i * (barWidth + 2), canvas.height - barHeight, barWidth, barHeight);
+            }
+            animationRef.current = requestAnimationFrame(draw);
+        }
+        draw();
+        return () => {
+            if (animationRef.current) cancelAnimationFrame(animationRef.current);
+            if (audioContextRef.current) audioContextRef.current.close();
+        };
+    }, [stream]);
+
+    return (
+        <div style={{ width: '100%', maxWidth: 500, overflow: 'hidden', marginTop: 8, borderRadius: 12, background: '#18191c', border: '1px solid #333' }}>
+            <canvas
+                ref={canvasRef}
+                width={400}
+                height={60}
+                style={{ width: '100%', height: 60, display: 'block', background: 'transparent', borderRadius: 12 }}
+            />
+        </div>
+    );
+}

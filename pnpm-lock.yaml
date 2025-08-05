@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@dannymoerkerke/audio-recorder':
+        specifier: ^1.1.1
+        version: 1.1.1
       '@langchain/community':
         specifier: ^0.3.49
         version: 0.3.49(@browserbasehq/sdk@2.6.0)(@browserbasehq/stagehand@1.14.0(@playwright/test@1.54.1)(deepmerge@4.3.1)(dotenv@17.2.1)(openai@5.10.1(ws@8.18.3)(zod@4.0.14))(zod@4.0.14))(@ibm-cloud/watsonx-ai@1.6.8)(@langchain/core@0.3.66(openai@5.10.1(ws@8.18.3)(zod@4.0.14)))(@langchain/google-genai@0.2.16(@langchain/core@0.3.66(openai@5.10.1(ws@8.18.3)(zod@4.0.14))))(@supabase/supabase-js@2.53.0)(axios@1.10.0)(ibm-cloud-sdk-core@5.4.0)(jsonwebtoken@9.0.2)(openai@5.10.1(ws@8.18.3)(zod@4.0.14))(pdf-parse@1.1.1)(playwright@1.54.1)(weaviate-client@3.7.0)(ws@8.18.3)
@@ -160,6 +163,9 @@ packages:
 
   '@cfworker/json-schema@4.1.1':
     resolution: {integrity: sha512-gAmrUZSGtKc3AiBL71iNWxDsyUC5uMaKKGdvzYsBoTW/xi42JQHl7eKV2OYzCUqvc+D2RCcf7EXY2iCyFIk6og==}
+
+  '@dannymoerkerke/audio-recorder@1.1.1':
+    resolution: {integrity: sha512-krhksmvD2SPudNyKBIdZ7kl0FPVOipSG3cI+QbiWXkXznJ1SzzoFpfz0iVZ4td+//Cd9iYbOjUjJLOeCBgTw/g==}
 
   '@emnapi/runtime@1.4.5':
     resolution: {integrity: sha512-++LApOtY0pEEz1zrd9vy1/zXVaVJJ/EbAF3u0fXIzPJEDtnITsBGbbK0EkM72amhl/R5b+5xx0Y/QhcVOpuulg==}
@@ -2720,6 +2726,8 @@ snapshots:
       - utf-8-validate
 
   '@cfworker/json-schema@4.1.1': {}
+
+  '@dannymoerkerke/audio-recorder@1.1.1': {}
 
   '@emnapi/runtime@1.4.5':
     dependencies:
