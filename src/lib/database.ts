@@ -488,6 +488,130 @@ export class DatabaseService {
 
         return results;
     }
+
+    // Get all applications for a recruiter (across all their jobs)
+    static async getApplicationsForRecruiter(recruiterId: string) {
+        try {
+            // Try explicit foreign key approach first
+            const { data, error } = await supabase
+                .from('applications')
+                .select(`
+                    *,
+                    candidate:users(*),
+                    job:jobs!inner(*),
+                    user_resume!user_resume_application_id_fkey(*)
+                `)
+                .eq('job.recruiter_id', recruiterId)
+                .order('created_at', { ascending: false });
+
+            if (!error && data) {
+                return data as (DatabaseApplication & {
+                    user_resume: DatabaseUserResume[];
+                    job: DatabaseJob;
+                    candidate: DatabaseUser;
+                })[];
+            }
+        } catch (firstError) {
+            console.log('Explicit foreign key failed for recruiter applications, using fallback...');
+        }
+
+        // Fallback: First get all jobs for the recruiter, then get applications
+        const { data: jobsData, error: jobsError } = await supabase
+            .from('jobs')
+            .select('id')
+            .eq('recruiter_id', recruiterId);
+
+        if (jobsError) throw jobsError;
+
+        const jobIds = jobsData.map(job => job.id);
+        if (jobIds.length === 0) return [];
+
+        const { data, error } = await supabase
+            .from('applications')
+            .select(`
+                *,
+                candidate:users(*),
+                job:jobs(*)
+            `)
+            .in('job_id', jobIds)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Fetch resumes for all applications
+        const applicationIds = data.map(app => app.id);
+        const { data: resumeData } = await supabase
+            .from('user_resume')
+            .select('*')
+            .in('application_id', applicationIds);
+
+        // Map resumes to applications
+        const appsWithResumes = data.map(app => ({
+            ...app,
+            user_resume: resumeData?.filter(resume => resume.application_id === app.id) || []
+        }));
+
+        return appsWithResumes as (DatabaseApplication & {
+            user_resume: DatabaseUserResume[];
+            job: DatabaseJob;
+            candidate: DatabaseUser;
+        })[];
+    }
+
+    // Get a specific application by ID with all related data
+    static async getApplicationById(applicationId: string) {
+        try {
+            // Try explicit foreign key approach first
+            const { data, error } = await supabase
+                .from('applications')
+                .select(`
+                    *,
+                    candidate:users(*),
+                    job:jobs(*),
+                    user_resume!user_resume_application_id_fkey(*)
+                `)
+                .eq('id', applicationId)
+                .single();
+
+            if (!error && data) {
+                return data as (DatabaseApplication & {
+                    user_resume: DatabaseUserResume[];
+                    job: DatabaseJob;
+                    candidate: DatabaseUser;
+                });
+            }
+        } catch (firstError) {
+            console.log('Explicit foreign key failed for application, using fallback...');
+        }
+
+        // Fallback: Fetch without explicit foreign key
+        const { data, error } = await supabase
+            .from('applications')
+            .select(`
+                *,
+                candidate:users(*),
+                job:jobs(*)
+            `)
+            .eq('id', applicationId)
+            .single();
+
+        if (error) throw error;
+
+        // Fetch resumes for the application
+        const { data: resumeData } = await supabase
+            .from('user_resume')
+            .select('*')
+            .eq('application_id', applicationId);
+
+        return {
+            ...data,
+            user_resume: resumeData || []
+        } as (DatabaseApplication & {
+            user_resume: DatabaseUserResume[];
+            job: DatabaseJob;
+            candidate: DatabaseUser;
+        });
+    }
 }
 
 // Helper functions
