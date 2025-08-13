@@ -431,7 +431,7 @@ export default function ApplicationsPage() {
                                                                     {application.job?.title || 'Senior AI engineer'}
                                                                 </div>
                                                                 <div className="text-sm text-gray-500">
-                                                                    ONEPIECE
+                                                                    {application.job?.company_name || 'Unknown Company'}
                                                                 </div>
                                                             </div>
                                                         </div>

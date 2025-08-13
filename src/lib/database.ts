@@ -22,6 +22,7 @@ export interface DatabaseJob {
     created_at?: string;
     end_date?: string;
     job_link?: string;
+    company_name?: string;
 }
 
 export interface DatabaseApplication {
