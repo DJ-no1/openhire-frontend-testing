@@ -1,4 +1,6 @@
+// components/ai_interview.tsx
 "use client";
+
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import { Card } from "./ui/card";
 import { Textarea } from "./ui/textarea";
@@ -50,35 +52,52 @@ type FinalAssessment = {
     };
 };
 
-const APPLICATION_ID = "4cc1f02d-2c2f-441e-9a90-ccfda8be4ab4";
-const WS_URL = `ws://localhost:8000/interview/${APPLICATION_ID}`;
+interface AIInterviewProps {
+    applicationId: string;
+    interviewId: string;
+    onStatusChange: (status: InterviewStatus) => void;
+    onInterviewComplete: (finalAssessment: FinalAssessment, conversation: InterviewMessage[]) => void;
+}
 
-export default function AIInterview() {
+export default function AIInterviewNew({
+    applicationId,
+    interviewId,
+    onStatusChange,
+    onInterviewComplete
+}: AIInterviewProps) {
     // ALL STATE DECLARATIONS FIRST
     const [ws, setWs] = useState<WebSocket | null>(null);
     const [connectionStatus, setConnectionStatus] = useState<InterviewStatus>("disconnected");
     const [messages, setMessages] = useState<InterviewMessage[]>([]);
-    const [input, setInput] = useState<string>(""); // Explicitly type as string
-    const [currentQuestion, setCurrentQuestion] = useState("");
-    const [questionNumber, setQuestionNumber] = useState(0);
-    const [timeRemaining, setTimeRemaining] = useState(0);
-    const [progress, setProgress] = useState(0);
+    const [input, setInput] = useState<string>("");
+    const [currentQuestion, setCurrentQuestion] = useState<string>("");
+    const [questionNumber, setQuestionNumber] = useState<number>(0);
+    const [timeRemaining, setTimeRemaining] = useState<number>(0);
+    const [progress, setProgress] = useState<number>(0);
     const [finalAssessment, setFinalAssessment] = useState<FinalAssessment | null>(null);
-    const [isListening, setIsListening] = useState(false);
-    const [recognition, setRecognition] = useState<any | null>(null);
-    
+    const [isListening, setIsListening] = useState<boolean>(false);
+    const [recognition, setRecognition] = useState<any>(null);
+
     // Deepgram state
     const [dgSocket, setDgSocket] = useState<WebSocket | null>(null);
     const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
     const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
 
     // ALL REF DECLARATIONS
-    const inputRef = useRef<HTMLTextAreaElement | null>(null);
-    const messagesEndRef = useRef<HTMLDivElement | null>(null);
+    const inputRef = useRef<HTMLTextAreaElement>(null);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    // WebSocket URL using the passed applicationId
+    const WS_URL = `ws://localhost:8000/interview/${applicationId}`;
 
     // HELPER FUNCTIONS FOR SAFE OPERATIONS
-    const safeInput = input || ""; // Fallback to empty string if input is undefined/null
-    
+    const safeInput = input || "";
+
+    // Update parent component when status changes
+    useEffect(() => {
+        onStatusChange(connectionStatus);
+    }, [connectionStatus, onStatusChange]);
+
     // CALLBACK FUNCTIONS
     const addMessage = useCallback((type: InterviewMessage["type"], content: string, extra?: Partial<InterviewMessage>) => {
         setMessages(prev => [...prev, {
@@ -106,9 +125,13 @@ export default function AIInterview() {
                 break;
             case "interview_completed":
                 setConnectionStatus("completed");
-                setFinalAssessment(data.final_assessment);
+                const assessment = data.final_assessment;
+                setFinalAssessment(assessment);
                 addMessage("system", "Interview completed! View your results below.");
                 setCurrentQuestion("");
+
+                // Pass final assessment and conversation to parent
+                onInterviewComplete(assessment, messages);
                 break;
             case "interview_paused":
                 setConnectionStatus("paused");
@@ -132,22 +155,22 @@ export default function AIInterview() {
             default:
                 console.log("Unknown message type:", data);
         }
-    }, [addMessage, progress, timeRemaining]);
+    }, [addMessage, progress, timeRemaining, messages, onInterviewComplete]);
 
     const connectToInterview = useCallback(() => {
         if (connectionStatus === "connected" || connectionStatus === "connecting") return;
-        
+
         setConnectionStatus("connecting");
         addMessage("system", "Connecting to AI Interview System...");
-        
+
         const websocket = new WebSocket(WS_URL);
-        
+
         websocket.onopen = () => {
             setConnectionStatus("connected");
             addMessage("system", "Connected! Starting interview...");
             websocket.send(JSON.stringify({
                 type: "start_interview",
-                payload: {}
+                payload: { interview_id: interviewId }
             }));
         };
 
@@ -169,17 +192,17 @@ export default function AIInterview() {
         };
 
         setWs(websocket);
-    }, [connectionStatus, addMessage, handleMessage]);
+    }, [connectionStatus, addMessage, handleMessage, WS_URL, interviewId]);
 
     const submitAnswer = useCallback(() => {
-        // Safe check with fallback
         const inputValue = input || "";
         if (!inputValue.trim() || !ws || ws.readyState !== WebSocket.OPEN) return;
-        
+
         ws.send(JSON.stringify({
             type: "submit_answer",
             payload: { answer: inputValue }
         }));
+
         addMessage("user", inputValue);
         setInput("");
         setCurrentQuestion("");
@@ -187,11 +210,12 @@ export default function AIInterview() {
 
     const endInterview = useCallback(() => {
         if (!ws || ws.readyState !== WebSocket.OPEN) return;
-        
+
         ws.send(JSON.stringify({
             type: "submit_answer",
             payload: { answer: "end" }
         }));
+
         addMessage("user", "Ending interview...");
         setInput("");
         setCurrentQuestion("");
@@ -199,7 +223,7 @@ export default function AIInterview() {
 
     const pauseInterview = useCallback(() => {
         if (!ws || ws.readyState !== WebSocket.OPEN) return;
-        
+
         ws.send(JSON.stringify({
             type: "pause_interview",
             payload: {}
@@ -208,7 +232,7 @@ export default function AIInterview() {
 
     const resumeInterview = useCallback(() => {
         if (!ws || ws.readyState !== WebSocket.OPEN) return;
-        
+
         ws.send(JSON.stringify({
             type: "resume_interview",
             payload: {}
@@ -220,7 +244,7 @@ export default function AIInterview() {
             addMessage("error", "Speech recognition not supported in this browser");
             return;
         }
-        
+
         if (isListening) {
             recognition.stop();
             setIsListening(false);
@@ -231,33 +255,34 @@ export default function AIInterview() {
     }, [recognition, isListening, addMessage]);
 
     // EFFECTS (after all state and callbacks)
+
     // Initialize Speech Recognition
     useEffect(() => {
         if (typeof window !== "undefined" && ("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
             const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
             const recognitionInstance = new SpeechRecognition();
-            
+
             recognitionInstance.continuous = true;
             recognitionInstance.interimResults = true;
             recognitionInstance.lang = "en-US";
-            
+
             recognitionInstance.onresult = (event: any) => {
                 const results = Array.from(event.results);
                 const transcript = results
                     .map((result: any) => result[0].transcript)
                     .join("");
-                setInput(transcript || ""); // Ensure we always set a string
+                setInput(transcript || "");
             };
-            
+
             recognitionInstance.onerror = (event: any) => {
                 console.error("Speech recognition error:", event.error);
                 setIsListening(false);
             };
-            
+
             recognitionInstance.onend = () => {
                 setIsListening(false);
             };
-            
+
             setRecognition(recognitionInstance);
         }
     }, []);
@@ -282,20 +307,17 @@ export default function AIInterview() {
 
         // Start Deepgram WebSocket
         const socket = new WebSocket(
-                    // Upgrade to Nova-3 (latest and best)
-            `wss://api.deepgram.com/v1/listen?model=nova-2&punctuate=true&language=en-US&encoding=linear16&sample_rate=16000`
-,
+            `wss://api.deepgram.com/v1/listen?model=nova-2&punctuate=true&language=en-US&encoding=linear16&sample_rate=16000`,
             ["token", DEEPGRAM_API_KEY]
         );
+
         setDgSocket(socket);
 
         socket.onopen = async () => {
             try {
-                // Get mic
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 setMediaStream(stream);
 
-                // Use MediaRecorder to get audio chunks
                 const recorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
                 setMediaRecorder(recorder);
 
@@ -306,7 +328,7 @@ export default function AIInterview() {
                     }
                 };
 
-                recorder.start(250); // send every 250ms
+                recorder.start(250);
             } catch (error) {
                 console.error("Error accessing microphone:", error);
                 addMessage("error", "Error accessing microphone");
@@ -318,8 +340,8 @@ export default function AIInterview() {
             try {
                 const data = JSON.parse(msg.data);
                 if (data.channel?.alternatives?.[0]?.transcript !== undefined) {
-                    const transcript = data.channel.alternatives.transcript || ""; // Safe fallback
-                    if (transcript.trim()) { // Safe trim call
+                    const transcript = data.channel.alternatives.transcript || "";
+                    if (transcript.trim()) {
                         setInput(transcript);
                     }
                 }
@@ -351,7 +373,7 @@ export default function AIInterview() {
     }, [messages]);
 
     // HELPER FUNCTIONS
-    const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const handleInputKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (e.key === "Enter" && !e.shiftKey && connectionStatus === "connected" && currentQuestion) {
             e.preventDefault();
             submitAnswer();
@@ -371,93 +393,85 @@ export default function AIInterview() {
     };
 
     return (
-        <Card className="w-full max-w-4xl mx-auto flex flex-col h-[700px] border shadow-lg">
+        <Card className="w-full h-screen flex flex-col">
             {/* Header with Status and Controls */}
-            <div className="p-4 border-b bg-background">
-                <div className="flex items-center justify-between mb-2">
-                    <h2 className="text-xl font-semibold">AI Interview System</h2>
-                    <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        connectionStatus === "connected" ? "bg-green-100 text-green-800" :
-                        connectionStatus === "connecting" ? "bg-yellow-100 text-yellow-800" :
-                        connectionStatus === "paused" ? "bg-orange-100 text-orange-800" :
-                        connectionStatus === "completed" ? "bg-blue-100 text-blue-800" :
-                        "bg-gray-100 text-gray-800"
-                    }`}>
-                        {connectionStatus.charAt(0).toUpperCase() + connectionStatus.slice(1)}
-                    </div>
+            <div className="flex justify-between items-center p-4 border-b">
+                <div>
+                    <h1 className="text-2xl font-bold">AI Interview System</h1>
+                    <p className="text-sm text-gray-600">
+                        Status: {connectionStatus.charAt(0).toUpperCase() + connectionStatus.slice(1)}
+                    </p>
                 </div>
 
                 {/* Progress and Time */}
                 {progress > 0 && (
-                    <div className="flex items-center gap-4 mb-2">
-                        <div className="flex-1 bg-gray-200 rounded-full h-2">
-                            <div
-                                className="bg-blue-600 h-2 rounded-full transition-all"
-                                style={{ width: `${progress}%` }}
-                            />
-                        </div>
-                        <span className="text-sm text-gray-600">{progress}%</span>
+                    <div className="text-right">
+                        <div className="text-sm font-medium">{progress}%</div>
                         {timeRemaining > 0 && (
-                            <span className="text-sm text-gray-600">
-                                Time: {formatTime(timeRemaining)}
-                            </span>
+                            <div className="text-sm text-gray-600">Time: {formatTime(timeRemaining)}</div>
                         )}
                     </div>
                 )}
+            </div>
 
-                {/* Interview Controls */}
-                <div className="flex gap-2">
-                    {connectionStatus === "disconnected" && (
-                        <Button onClick={connectToInterview} className="bg-green-600 hover:bg-green-700">
-                            <Play className="w-4 h-4 mr-2" />
-                            Start Interview
+            {/* Interview Controls */}
+            <div className="p-4 border-b">
+                {connectionStatus === "disconnected" && (
+                    <Button onClick={connectToInterview} className="bg-green-600 hover:bg-green-700">
+                        <Play className="w-4 h-4 mr-2" />
+                        Start Interview
+                    </Button>
+                )}
+
+                {connectionStatus === "connected" && (
+                    <>
+                        <Button onClick={pauseInterview} variant="outline" className="mr-2">
+                            <Pause className="w-4 h-4 mr-2" />
+                            Pause
                         </Button>
-                    )}
-                    {connectionStatus === "connected" && (
-                        <>
-                            <Button onClick={pauseInterview} variant="outline" size="sm">
-                                <Pause className="w-4 h-4 mr-1" />
-                                Pause
-                            </Button>
-                            <Button onClick={endInterview} variant="destructive" size="sm">
-                                <Square className="w-4 h-4 mr-1" />
-                                End Interview
-                            </Button>
-                        </>
-                    )}
-                    {connectionStatus === "paused" && (
-                        <Button onClick={resumeInterview} variant="outline" size="sm">
-                            <Play className="w-4 h-4 mr-1" />
-                            Resume
+                        <Button onClick={endInterview} variant="destructive">
+                            <Square className="w-4 h-4 mr-2" />
+                            End Interview
                         </Button>
-                    )}
-                </div>
+                    </>
+                )}
+
+                {connectionStatus === "paused" && (
+                    <Button onClick={resumeInterview} className="bg-blue-600 hover:bg-blue-700">
+                        <Play className="w-4 h-4 mr-2" />
+                        Resume
+                    </Button>
+                )}
             </div>
 
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-muted">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {messages.length === 0 && (
-                    <div className="text-center text-muted-foreground">
+                    <div className="text-center text-gray-500 mt-20">
                         Click "Start Interview" to begin your AI interview session
                     </div>
                 )}
+
                 {messages.map((msg, i) => (
-                    <div key={i} className={`flex ${msg.type === "user" ? "justify-end" : "justify-start"}`}>
-                        <div className={`rounded-lg px-4 py-3 max-w-[85%] shadow-sm ${
-                            msg.type === "user" ? "bg-blue-600 text-white" :
-                            msg.type === "question" ? "bg-white text-gray-900 border-l-4 border-blue-500" :
-                            msg.type === "error" ? "bg-red-100 text-red-800 border border-red-200" :
-                            "bg-white text-gray-700 border"
-                        }`}>
-                            {msg.type === "question" && (
-                                <div className="text-xs text-gray-500 mb-1">
-                                    Question {msg.questionNumber} {msg.questionType && `(${msg.questionType})`}
-                                </div>
-                            )}
-                            <div className="whitespace-pre-line text-sm">{msg.content}</div>
-                            <div className="text-xs opacity-70 mt-1">
-                                {msg.timestamp.toLocaleTimeString()}
+                    <div
+                        key={i}
+                        className={`p-3 rounded-lg ${msg.type === "user"
+                                ? "bg-blue-100 ml-12"
+                                : msg.type === "question"
+                                    ? "bg-green-100"
+                                    : msg.type === "error"
+                                        ? "bg-red-100"
+                                        : "bg-gray-100"
+                            }`}
+                    >
+                        {msg.type === "question" && (
+                            <div className="font-semibold text-green-800 mb-1">
+                                Question {msg.questionNumber} {msg.questionType && `(${msg.questionType})`}
                             </div>
+                        )}
+                        <div className="whitespace-pre-wrap">{msg.content}</div>
+                        <div className="text-xs text-gray-500 mt-1">
+                            {msg.timestamp.toLocaleTimeString()}
                         </div>
                     </div>
                 ))}
@@ -466,15 +480,15 @@ export default function AIInterview() {
 
             {/* Current Question Display */}
             {currentQuestion && connectionStatus === "connected" && (
-                <div className="p-4 bg-blue-50 border-t border-blue-200">
-                    <div className="text-sm font-medium text-blue-800 mb-1">Current Question:</div>
-                    <div className="text-blue-900">{currentQuestion}</div>
+                <div className="p-4 bg-yellow-50 border-t border-yellow-200">
+                    <div className="font-medium text-yellow-800 mb-2">Current Question:</div>
+                    <div className="text-gray-700">{currentQuestion}</div>
                 </div>
             )}
 
             {/* Input Area */}
             {connectionStatus === "connected" && currentQuestion && (
-                <div className="p-4 border-t bg-background">
+                <div className="p-4 border-t">
                     <form
                         onSubmit={(e) => {
                             e.preventDefault();
@@ -484,82 +498,88 @@ export default function AIInterview() {
                     >
                         <Textarea
                             ref={inputRef}
-                            placeholder="Type your answer or use the microphone..."
-                            value={safeInput} // Use safe input
-                            onChange={e => {
-                                setInput(e.target.value || ""); // Ensure we always set a string
+                            value={safeInput}
+                            onChange={(e) => {
+                                setInput(e.target.value || "");
                                 autoGrow(e);
                             }}
                             onKeyDown={handleInputKeyDown}
+                            placeholder="Type your answer here..."
                             className="flex-1 min-h-[40px] max-h-60"
                             rows={1}
                             autoFocus
                         />
                         <Button
                             type="button"
-                            onClick={toggleListening}
-                            variant={isListening ? "destructive" : "outline"}
+                            variant="outline"
                             size="icon"
+                            onClick={toggleListening}
+                            className={isListening ? "bg-red-100" : ""}
                         >
                             {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
                         </Button>
-                        <Button type="submit" disabled={!safeInput.trim()}> {/* Use safe input */}
+                        <Button type="submit" disabled={!safeInput.trim()}>
                             Submit
                         </Button>
                     </form>
                     {isListening && (
-                        <div className="text-sm text-red-600 mt-1 flex items-center">
-                            <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse mr-2" />
-                            Listening...
-                        </div>
+                        <div className="text-sm text-red-600 mt-1">Listening...</div>
                     )}
                 </div>
             )}
 
             {/* Final Assessment */}
             {finalAssessment && connectionStatus === "completed" && (
-                <div className="p-4 border-t bg-background max-h-80 overflow-y-auto">
-                    <h3 className="text-lg font-semibold text-green-600 mb-3">🎉 Interview Complete!</h3>
+                <div className="p-6 bg-green-50 border-t">
+                    <h2 className="text-xl font-bold text-green-800 mb-4">🎉 Interview Complete!</h2>
+
                     <div className="grid grid-cols-2 gap-4 mb-4">
-                        <div className="space-y-2">
-                            <div className="text-sm">
-                                <span className="font-medium">Overall Score:</span> {finalAssessment.overall_score}%
-                            </div>
-                            <div className="text-sm">
-                                <span className="font-medium">Technical Score:</span> {finalAssessment.technical_score}%
-                            </div>
-                            <div className="text-sm">
-                                <span className="font-medium">Recommendation:</span> {finalAssessment.final_recommendation}
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <div className="text-sm">
-                                <span className="font-medium">Industry:</span> {finalAssessment.industry_type}
-                            </div>
-                            <div className="text-sm">
-                                <span className="font-medium">Duration:</span> {finalAssessment.interview_metrics.duration}
-                            </div>
-                            <div className="text-sm">
-                                <span className="font-medium">Questions:</span> {finalAssessment.interview_metrics.questions_answered}
-                            </div>
-                        </div>
-                    </div>
-                    <div className="space-y-3">
                         <div>
-                            <h4 className="font-medium text-sm mb-1">Feedback:</h4>
-                            <p className="text-sm text-gray-700">{finalAssessment.feedback.universal_feedback_for_candidate}</p>
+                            <div className="text-sm text-gray-600">Overall Score</div>
+                            <div className="text-2xl font-bold text-green-600">{finalAssessment.overall_score}%</div>
                         </div>
-                        {finalAssessment.feedback.areas_of_improvement_for_candidate.length > 0 && (
-                            <div>
-                                <h4 className="font-medium text-sm mb-1">Areas for Improvement:</h4>
-                                <ul className="text-sm text-gray-700 list-disc list-inside">
-                                    {finalAssessment.feedback.areas_of_improvement_for_candidate.map((area, idx) => (
-                                        <li key={idx}>{area}</li>
-                                    ))}
-                                </ul>
-                            </div>
-                        )}
+                        <div>
+                            <div className="text-sm text-gray-600">Technical Score</div>
+                            <div className="text-2xl font-bold text-blue-600">{finalAssessment.technical_score}%</div>
+                        </div>
                     </div>
+
+                    <div className="mb-4">
+                        <div className="text-sm text-gray-600">Recommendation</div>
+                        <div className="font-medium">{finalAssessment.final_recommendation}</div>
+                    </div>
+
+                    <div className="mb-4">
+                        <div className="text-sm text-gray-600">Industry</div>
+                        <div className="font-medium">{finalAssessment.industry_type}</div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
+                        <div>
+                            <div className="text-gray-600">Duration</div>
+                            <div>{finalAssessment.interview_metrics.duration}</div>
+                        </div>
+                        <div>
+                            <div className="text-gray-600">Questions</div>
+                            <div>{finalAssessment.interview_metrics.questions_answered}</div>
+                        </div>
+                    </div>
+
+                    <div className="mb-4">
+                        <h3 className="font-medium text-gray-800 mb-2">Feedback:</h3>
+                        <p className="text-gray-700">{finalAssessment.feedback.universal_feedback_for_candidate}</p>
+                    </div>
+
+                    {finalAssessment.feedback.areas_of_improvement_for_candidate.length > 0 && (
+                        <div>
+                            <h3 className="font-medium text-gray-800 mb-2">Areas for Improvement:</h3>
+                            <ul className="list-disc list-inside space-y-1">
+                                {finalAssessment.feedback.areas_of_improvement_for_candidate.map((area, idx) => (
+                                    <li key={idx} className="text-gray-700">{area}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
                 </div>
             )}
         </Card>

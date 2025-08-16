@@ -1,5 +1,6 @@
 "use client";
 
+// import AIInterview2 from "@/components/ai_interview2";
 import AIInterview from "@/components/ai_interview";
 
 export default function AIInterviewTestPage() {
@@ -8,6 +9,7 @@ export default function AIInterviewTestPage() {
             <div className="w-full flex items-start justify-end">
                 <div className="max-w-xl w-full">
                     <AIInterview />
+                    {/* <AIInterview2 /> */}
                 </div>
             </div>
         </div>
