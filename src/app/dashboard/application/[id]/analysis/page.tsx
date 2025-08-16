@@ -28,6 +28,8 @@ import { toast } from "sonner";
 import { DatabaseService, type DatabaseApplication, type DatabaseUserResume, getApplicationStatusColor } from "@/lib/database";
 import { ResumeAnalysisResults } from "@/components/resume-analysis-results";
 import { CandidateApplicationsList } from "@/components/candidate-applications-list";
+import { supabase } from '@/lib/supabaseClient';
+import { useRouter } from "next/navigation";
 
 
 
@@ -40,11 +42,14 @@ interface ReviewResponse {
 
 export default function ApplicationAnalysisPage() {
     const { id } = useParams();
+    const router = useRouter();
     const [application, setApplication] = useState<(DatabaseApplication & { user_resume: DatabaseUserResume[] }) | null>(null);
     const [analysisData, setAnalysisData] = useState<ReviewResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isInitialized, setIsInitialized] = useState(false);
+    const [hasExistingInterview, setHasExistingInterview] = useState<boolean | null>(null);
+    const [checkingInterview, setCheckingInterview] = useState(false);
 
     useEffect(() => {
         if (id && !isInitialized) {
@@ -188,6 +193,106 @@ export default function ApplicationAnalysisPage() {
             toast.success(`Application status updated to ${newStatus}`);
         } catch (err) {
             toast.error("Failed to update status");
+        }
+    };
+
+    const handleStartInterview = async () => {
+        if (!application) return;
+
+        setCheckingInterview(true);
+
+        try {
+            console.log('🔍 Checking for existing interview for application:', application.id);
+
+            // Step 1: Check if this application has an interview_artifact_id
+            const { data: appData, error: appError } = await supabase
+                .from('applications')
+                .select('interview_artifact_id')
+                .eq('id', application.id)
+                .single();
+
+            if (appError) {
+                console.error('❌ Error checking application:', appError);
+                // If error checking application, proceed to permission setup
+                router.push(`/dashboard/application/${application.id}/permission`);
+                return;
+            }
+
+            if (!appData?.interview_artifact_id) {
+                console.log('📭 No interview artifact ID found, starting new interview');
+                // No interview artifact ID means no interview started yet
+                router.push(`/dashboard/application/${application.id}/permission`);
+                return;
+            }
+
+            const rawInterviewArtifactId = appData.interview_artifact_id;
+            console.log('🎯 Found interview artifact ID(s):', rawInterviewArtifactId);
+
+            // Handle comma-separated interview artifact IDs - use the last one (most recent)
+            const interviewArtifactIds = rawInterviewArtifactId.split(',').map((id: string) => id.trim());
+            const interviewArtifactId = interviewArtifactIds[interviewArtifactIds.length - 1];
+
+            console.log('📋 All artifact IDs:', interviewArtifactIds);
+            console.log('🎯 Using latest artifact ID:', interviewArtifactId);
+
+            // Validate UUID format
+            const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+            if (!uuidRegex.test(interviewArtifactId)) {
+                console.error('❌ Invalid UUID format:', interviewArtifactId);
+                toast.error(`Invalid interview data format. Starting new interview...`);
+                router.push(`/dashboard/application/${application.id}/permission`);
+                return;
+            }
+
+            // Step 2: Get the interview artifact details
+            const { data: artifact, error: artifactError } = await supabase
+                .from('interview_artifacts')
+                .select('id, status, completed_at')
+                .eq('id', interviewArtifactId)
+                .single();
+
+            if (artifactError) {
+                console.error('❌ Error fetching interview artifact:', artifactError);
+                // If error fetching artifact but ID exists, might be database issue
+                const proceedAnyway = window.confirm(
+                    'There seems to be an issue with the interview data. Would you like to start a new interview?'
+                );
+                if (proceedAnyway) {
+                    router.push(`/dashboard/application/${application.id}/permission`);
+                }
+                return;
+            }
+
+            console.log('📊 Found interview artifact:', artifact);
+
+            // Step 3: Handle different interview states
+            if (artifact.status === 'completed' || artifact.completed_at) {
+                toast.info('Interview already completed. Redirecting to results...');
+                router.push(`/dashboard/application/${application.id}/interview-result`);
+                return;
+            }
+
+            if (artifact.status === 'in_progress') {
+                const resumeInterview = window.confirm(
+                    'An interview is already in progress. Do you want to resume it? Click Cancel to view results instead.'
+                );
+
+                if (resumeInterview) {
+                    router.push(`/dashboard/application/${application.id}/interview`);
+                } else {
+                    router.push(`/dashboard/application/${application.id}/interview-result`);
+                }
+                return;
+            }
+
+            // If status is not completed or in_progress, allow new interview
+            router.push(`/dashboard/application/${application.id}/permission`);
+
+        } catch (error) {
+            console.error('❌ Error checking existing interview:', error);
+            toast.error('Error checking interview status. Please try again.');
+        } finally {
+            setCheckingInterview(false);
         }
     };
 
@@ -336,6 +441,21 @@ export default function ApplicationAnalysisPage() {
                                 </div>
                             </div>
                         )}
+
+                        {/* Start Interview Button */}
+                        <div className="mt-8">
+                            <Button
+                                onClick={handleStartInterview}
+                                size="lg"
+                                className="px-8 py-3 text-lg font-semibold bg-green-600 hover:bg-green-700 text-white"
+                            >
+                                <User className="w-5 h-5 mr-2" />
+                                Start Interview
+                            </Button>
+                            <p className="text-sm text-gray-500 mt-2">
+                                Begin the AI-powered interview process for this candidate
+                            </p>
+                        </div>
                     </div>
                 </div>
 
@@ -403,6 +523,43 @@ export default function ApplicationAnalysisPage() {
                                     <p className="text-sm text-gray-600">{resume?.score || 0}%</p>
                                 </div>
                             </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Interview Action Card */}
+                <Card className="shadow-lg border-l-4 border-l-blue-500">
+                    <CardHeader className="pb-4">
+                        <CardTitle className="flex items-center gap-2 text-lg">
+                            <Brain className="h-6 w-6 text-blue-600" />
+                            AI Interview
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="font-semibold text-gray-900 mb-1">Ready for AI Interview</h3>
+                                <p className="text-sm text-gray-600 mb-3">
+                                    Start a comprehensive AI-powered interview to evaluate this candidate's skills and fit.
+                                </p>
+                            </div>
+                            <Button
+                                onClick={handleStartInterview}
+                                disabled={checkingInterview}
+                                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2"
+                            >
+                                {checkingInterview ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                        Checking...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Brain className="h-4 w-4 mr-2" />
+                                        Start Interview
+                                    </>
+                                )}
+                            </Button>
                         </div>
                     </CardContent>
                 </Card>
