@@ -3,13 +3,12 @@
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import { Camera, CameraOff, Settings, Maximize2 } from "lucide-react";
 import { Button } from "./ui/button";
-import { supabase } from '@/lib/supabaseClient';
 
 interface VideoFeedProps {
     applicationId: string;
     isInterviewActive: boolean;
     onVideoReady?: (isReady: boolean) => void;
-    onScreenshotCaptured?: (imageUrl: string) => void;
+    onImageCaptured?: (imageBlob: Blob) => void; // Changed to return Blob instead of URL
     aiSpeakingState?: boolean; // For overlay animations
     selectedVideoDevice?: string | null; // Selected camera device ID
     selectedAudioDevice?: string | null; // Selected audio device ID (for future use)
@@ -24,7 +23,7 @@ const VideoFeed = ({
     applicationId,
     isInterviewActive,
     onVideoReady,
-    onScreenshotCaptured,
+    onImageCaptured, // Changed prop name
     aiSpeakingState = false,
     selectedVideoDevice = null,
     selectedAudioDevice = null
@@ -37,45 +36,8 @@ const VideoFeed = ({
     const [isVideoReady, setIsVideoReady] = useState(false);
     const [captureInterval, setCaptureInterval] = useState<NodeJS.Timeout | null>(null);
     const [screenshotCount, setScreenshotCount] = useState(0);
-    const [interviewArtifactId, setInterviewArtifactId] = useState<string | null>(null);
     const [isCapturing, setIsCapturing] = useState(false);
     const [error, setError] = useState<string | null>(null);
-
-    // Fetch interview data (backend should create it)
-    const fetchInterviewData = useCallback(async () => {
-        try {
-            console.log('🔍 Waiting for backend to create interview for application:', applicationId);
-
-            // Simply wait for backend to create interview - don't create it ourselves
-            let { data: interviewData, error: interviewError } = await supabase
-                .from('interviews')
-                .select('id')
-                .eq('application_id', applicationId)
-                .eq('status', 'in_progress')
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .maybeSingle();
-
-            if (interviewError && interviewError.code !== 'PGRST116') {
-                console.error('❌ Error fetching interview data:', interviewError);
-                // Don't show error immediately - backend might be creating it
-                console.log('⏳ Retrying in a moment...');
-                return;
-            }
-
-            if (interviewData?.id) {
-                setInterviewArtifactId(interviewData.id);
-                console.log('✅ Found interview ID:', interviewData.id);
-                setError(''); // Clear any previous errors
-            } else {
-                console.log('⏳ No interview found yet, backend may still be creating it...');
-                // Don't set error - this is expected while backend processes
-            }
-        } catch (err) {
-            console.error('❌ Exception fetching interview data:', err);
-            console.log('⏳ Will retry fetching interview data...');
-        }
-    }, [applicationId]);
 
     // Initialize camera with better error handling
     const initializeCamera = useCallback(async () => {
@@ -132,12 +94,37 @@ const VideoFeed = ({
                     onVideoReady?.(false);
                 };
 
-                // Auto-play the video
+                // Auto-play the video with proper promise handling
                 try {
-                    await videoRef.current.play();
-                    console.log('✅ Video started playing');
-                } catch (playError) {
-                    console.error('❌ Video play error:', playError);
+                    // Wait a moment for the element to fully initialize
+                    await new Promise(resolve => setTimeout(resolve, 50));
+
+                    // Ensure video is ready before playing
+                    if (videoRef.current.readyState >= 2) { // HAVE_CURRENT_DATA or higher
+                        const playPromise = videoRef.current.play();
+                        if (playPromise !== undefined) {
+                            await playPromise;
+                            console.log('✅ Video started playing');
+                        }
+                    } else {
+                        // Wait for video to be ready, then play
+                        const onCanPlay = () => {
+                            if (videoRef.current) {
+                                const playPromise = videoRef.current.play();
+                                if (playPromise !== undefined) {
+                                    playPromise.then(() => {
+                                        console.log('✅ Video started playing (delayed)');
+                                    }).catch((playError) => {
+                                        console.warn('⚠️ Video autoplay failed (expected in some browsers):', playError.message);
+                                    });
+                                }
+                                videoRef.current.removeEventListener('canplay', onCanPlay);
+                            }
+                        };
+                        videoRef.current.addEventListener('canplay', onCanPlay);
+                    }
+                } catch (playError: any) {
+                    console.warn('⚠️ Video autoplay failed (expected in some browsers):', playError.message);
                     // Video might still work for capture even if autoplay fails
                 }
             } else {
@@ -164,13 +151,12 @@ const VideoFeed = ({
         }
     }, [onVideoReady, selectedVideoDevice]);
 
-    // Capture screenshot and save to Supabase
+    // Capture screenshot and return blob to parent - parent handles storage
     const captureScreenshot = useCallback(async () => {
-        if (!videoRef.current || !canvasRef.current || !interviewArtifactId || isCapturing) {
+        if (!videoRef.current || !canvasRef.current || isCapturing) {
             console.warn('⚠️ Cannot capture screenshot:', {
                 hasVideo: !!videoRef.current,
                 hasCanvas: !!canvasRef.current,
-                hasArtifactId: !!interviewArtifactId,
                 isCapturing
             });
             return;
@@ -202,47 +188,18 @@ const VideoFeed = ({
             // Draw current video frame to canvas
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-            // Convert canvas to blob
+            // Convert canvas to blob and send to parent
             canvas.toBlob(async (blob) => {
                 if (!blob) {
                     console.error('❌ Failed to create blob from canvas');
                     return;
                 }
 
-                try {
-                    // Generate unique filename using interview artifact ID
-                    const timestamp = Date.now();
-                    const filename = `interview-${interviewArtifactId}-${timestamp}.jpg`;
-                    const filePath = `interviews/${interviewArtifactId}/${filename}`;
+                console.log('📸 Image captured, sending blob to parent (size:', blob.size, 'bytes)');
 
-                    console.log('📤 Uploading screenshot:', filePath);
+                setScreenshotCount(prev => prev + 1);
+                onImageCaptured?.(blob); // Send blob to parent
 
-                    // Upload to Supabase storage
-                    const { data: uploadData, error: uploadError } = await supabase.storage
-                        .from('pictures')
-                        .upload(filePath, blob, {
-                            contentType: 'image/jpeg',
-                            upsert: false
-                        });
-
-                    if (uploadError) {
-                        console.error('❌ Upload error:', uploadError);
-                        return;
-                    }
-
-                    // Get public URL
-                    const { data: { publicUrl } } = supabase.storage
-                        .from('pictures')
-                        .getPublicUrl(filePath);
-
-                    console.log('✅ Screenshot uploaded successfully:', publicUrl);
-
-                    setScreenshotCount(prev => prev + 1);
-                    onScreenshotCaptured?.(publicUrl);
-
-                } catch (uploadErr) {
-                    console.error('❌ Error during upload:', uploadErr);
-                }
             }, 'image/jpeg', 0.9);
 
         } catch (err) {
@@ -250,35 +207,19 @@ const VideoFeed = ({
         } finally {
             setIsCapturing(false);
         }
-    }, [interviewArtifactId, isCapturing, onScreenshotCaptured]);
+    }, [isCapturing, onImageCaptured]);
 
-    // Initialize camera and setup auto-capture with retry for interview data
+    // Initialize camera and start capturing - simplified without database dependency
     useEffect(() => {
-        const initializeWithRetry = async () => {
-            // Try to fetch interview data with retry
-            const maxRetries = 10; // Try for ~20 seconds
-            let retryCount = 0;
+        console.log('🎥 Initializing video feed for application:', applicationId);
 
-            const tryFetchInterview = async () => {
-                await fetchInterviewData();
-
-                // If we still don't have an interview ID, retry
-                if (!interviewArtifactId && retryCount < maxRetries) {
-                    retryCount++;
-                    console.log(`🔄 Retrying to fetch interview data (${retryCount}/${maxRetries})`);
-                    setTimeout(tryFetchInterview, 2000); // Retry every 2 seconds
-                } else if (!interviewArtifactId) {
-                    console.warn('⚠️ Could not find interview data after retries - backend may still be processing');
-                }
-            };
-
-            await tryFetchInterview();
-        };
-
-        initializeWithRetry();
-        initializeCamera();
+        // Small delay to prevent multiple components from initializing media simultaneously
+        const initTimer = setTimeout(() => {
+            initializeCamera();
+        }, 150); // 150ms delay to let VideoInterviewSystem initialize first
 
         return () => {
+            clearTimeout(initTimer);
             // Cleanup
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
@@ -291,7 +232,13 @@ const VideoFeed = ({
 
     // Setup auto-capture when interview is active
     useEffect(() => {
-        if (isInterviewActive && isVideoReady && interviewArtifactId) {
+        console.log('🎬 Auto-capture useEffect triggered:', {
+            isInterviewActive,
+            isVideoReady,
+            hasExistingInterval: !!captureInterval
+        });
+
+        if (isInterviewActive && isVideoReady) {
             console.log('🎬 Setting up auto-capture every 10 seconds');
 
             // Clear any existing interval
@@ -308,6 +255,7 @@ const VideoFeed = ({
             setCaptureInterval(interval);
 
             return () => {
+                console.log('🧹 Cleaning up auto-capture interval');
                 if (interval) {
                     clearInterval(interval);
                 }
@@ -315,12 +263,15 @@ const VideoFeed = ({
         } else {
             // Stop auto-capture when interview is not active
             if (captureInterval) {
-                console.log('🛑 Stopping auto-capture');
+                console.log('🛑 Stopping auto-capture - conditions not met:', {
+                    isInterviewActive,
+                    isVideoReady
+                });
                 clearInterval(captureInterval);
                 setCaptureInterval(null);
             }
         }
-    }, [isInterviewActive, isVideoReady, interviewArtifactId]);
+    }, [isInterviewActive, isVideoReady, captureScreenshot]); // Add captureScreenshot to dependencies
 
     // Manual screenshot capture
     const handleManualCapture = () => {
@@ -332,7 +283,6 @@ const VideoFeed = ({
             {/* Video Element */}
             <video
                 ref={videoRef}
-                autoPlay
                 playsInline
                 muted
                 className="w-full h-full object-cover"
@@ -410,6 +360,24 @@ const VideoFeed = ({
                     className="bg-black/50 hover:bg-black/70 text-white border-0"
                 >
                     <Camera className="w-4 h-4" />
+                </Button>
+
+                {/* Debug info button */}
+                <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                        console.log('🔍 VideoFeed Debug Info:', {
+                            isInterviewActive,
+                            isVideoReady,
+                            screenshotCount,
+                            hasCallback: !!onImageCaptured,
+                            hasInterval: !!captureInterval
+                        });
+                    }}
+                    className="bg-blue-500/50 hover:bg-blue-600/70 text-white border-0 text-xs"
+                >
+                    Debug
                 </Button>
             </div>
         </div>

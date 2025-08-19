@@ -263,11 +263,15 @@ export default function PermissionPage() {
                 videoRef.current.playsInline = true;
 
                 try {
-                    await videoRef.current.play();
-                    console.log('Video started playing successfully');
-                } catch (playError) {
+                    // Ensure video is ready and handle play promise properly
+                    const playPromise = videoRef.current.play();
+                    if (playPromise !== undefined) {
+                        await playPromise;
+                        console.log('Video started playing successfully');
+                    }
+                } catch (playError: any) {
                     // Video play errors are common and usually not critical
-                    console.warn('Video autoplay failed (this is normal in some browsers):', playError);
+                    console.warn('Video autoplay failed (this is normal in some browsers):', playError.message);
                 }
             }
             setTestStates(prev => ({ ...prev, camera: 'success' }));

@@ -4,6 +4,8 @@ import React, { useRef, useState, useEffect, useCallback, forwardRef, useImperat
 import { Textarea } from "./ui/textarea";
 import { Button } from "./ui/button";
 import { Mic, MicOff, Play, Square } from "lucide-react";
+import { deepgramTTS, type DeepgramVoice } from "@/lib/deepgram-tts";
+import { toast } from "sonner";
 
 // Deepgram STT integration
 const DEEPGRAM_API_KEY = process.env.NEXT_PUBLIC_DEEPGRAM_API_KEY;
@@ -87,10 +89,21 @@ const VideoInterviewSystem = forwardRef<VideoInterviewSystemRef, VideoInterviewS
     const [finalAssessment, setFinalAssessment] = useState<FinalAssessment | null>(null);
     const [isListening, setIsListening] = useState<boolean>(false);
 
-    // TTS State for streaming AI responses
-    const [speechSynthesis, setSpeechSynthesis] = useState<SpeechSynthesis | null>(null);
-    const [currentUtterance, setCurrentUtterance] = useState<SpeechSynthesisUtterance | null>(null);
+    // TTS State for AI responses with Deepgram Aura voices
+    const [selectedTTSVoice, setSelectedTTSVoice] = useState<DeepgramVoice | null>(null);
     const [isAISpeaking, setIsAISpeaking] = useState<boolean>(false);
+
+    // Initialize Deepgram TTS System
+    useEffect(() => {
+        // Set up the best voice for interviews
+        const setupTTS = async () => {
+            const bestVoice = deepgramTTS.getBestVoice('feminine', 'interview');
+            setSelectedTTSVoice(bestVoice);
+            console.log('🎤 Deepgram TTS initialized with voice:', bestVoice?.name);
+        };
+
+        setupTTS();
+    }, []);
 
     // Add retry state
     const [retryCount, setRetryCount] = useState(0);
@@ -143,13 +156,6 @@ const VideoInterviewSystem = forwardRef<VideoInterviewSystemRef, VideoInterviewS
     const WS_URL = `ws://localhost:8000/interview/${applicationId}`;
     const safeInput = input || "";
 
-    // Initialize Speech Synthesis for TTS
-    useEffect(() => {
-        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-            setSpeechSynthesis(window.speechSynthesis);
-        }
-    }, []);
-
     // Update parent component when status changes
     useEffect(() => {
         onStatusChange(connectionStatus);
@@ -165,87 +171,31 @@ const VideoInterviewSystem = forwardRef<VideoInterviewSystemRef, VideoInterviewS
         }]);
     }, []);
 
-    // TTS function for AI questions with interruption capability
-    const speakAIResponse = useCallback((text: string) => {
-        if (!speechSynthesis) {
-            console.error('❌ Speech synthesis not available');
-            return;
+    // Deepgram TTS function for AI questions with Aura voices
+    const speakAIResponse = useCallback(async (text: string) => {
+        console.log('🔊 Speaking AI response with Deepgram TTS:', text.substring(0, 50) + '...');
+
+        // Stop any current speech and wait for it to complete
+        await deepgramTTS.stop();
+
+        setIsAISpeaking(true);
+        onQuestionReceived?.(text, true);
+
+        try {
+            await deepgramTTS.speak(text, {
+                voice: selectedTTSVoice || undefined
+            });
+
+            console.log('✅ Deepgram TTS completed');
+        } catch (error) {
+            console.error('❌ Deepgram TTS error:', error);
+            // Show user-friendly error message
+            toast.error("Voice synthesis temporarily unavailable");
+        } finally {
+            setIsAISpeaking(false);
+            onQuestionReceived?.(text, false);
         }
-
-        // Stop any current speech
-        if (currentUtterance) {
-            speechSynthesis.cancel();
-            setCurrentUtterance(null);
-        }
-
-        console.log('🔊 Speaking AI response:', text.substring(0, 50) + '...');
-
-        const utterance = new SpeechSynthesisUtterance(text);
-
-        // Wait for voices to load if they haven't yet
-        const speakWithVoice = () => {
-            const voices = speechSynthesis.getVoices();
-            console.log('🗣️ Available voices:', voices.length);
-
-            if (voices.length > 0) {
-                // Find a good English voice
-                const preferredVoice = voices.find(voice =>
-                    voice.name.includes('Google') ||
-                    voice.name.includes('Premium') ||
-                    voice.name.includes('Enhanced') ||
-                    voice.name.includes('Neural')
-                ) || voices.find(voice =>
-                    voice.lang.startsWith('en') && voice.localService === false
-                ) || voices.find(voice =>
-                    voice.lang.startsWith('en')
-                ) || voices[0];
-
-                if (preferredVoice) {
-                    console.log('🎤 Using voice:', preferredVoice.name, preferredVoice.lang);
-                    utterance.voice = preferredVoice;
-                }
-            } else {
-                console.warn('⚠️ No voices available, using default');
-            }
-
-            utterance.rate = 0.9;
-            utterance.pitch = 1;
-            utterance.volume = 1;
-
-            utterance.onstart = () => {
-                console.log('🔊 AI speech started');
-                setIsAISpeaking(true);
-                onQuestionReceived?.(text, true);
-            };
-
-            utterance.onend = () => {
-                console.log('🔊 AI speech ended');
-                setIsAISpeaking(false);
-                onQuestionReceived?.(text, false);
-                setCurrentUtterance(null);
-            };
-
-            utterance.onerror = (error) => {
-                console.error('❌ Speech synthesis error:', error);
-                setIsAISpeaking(false);
-                onQuestionReceived?.(text, false);
-                setCurrentUtterance(null);
-            };
-
-            setCurrentUtterance(utterance);
-            speechSynthesis.speak(utterance);
-        };
-
-        // If voices are not loaded yet, wait for them
-        if (speechSynthesis.getVoices().length === 0) {
-            console.log('⏳ Waiting for voices to load...');
-            speechSynthesis.addEventListener('voiceschanged', speakWithVoice, { once: true });
-            // Fallback timeout
-            setTimeout(speakWithVoice, 1000);
-        } else {
-            speakWithVoice();
-        }
-    }, [speechSynthesis, currentUtterance, onQuestionReceived]);
+    }, [selectedTTSVoice, onQuestionReceived]);
 
     // Manual reset function for user
     const resetConnection = useCallback(() => {
@@ -269,15 +219,16 @@ const VideoInterviewSystem = forwardRef<VideoInterviewSystemRef, VideoInterviewS
 
     // Stop AI speaking when user starts responding
     const stopAISpeaking = useCallback(() => {
-        if (speechSynthesis && currentUtterance && isAISpeaking) {
-            speechSynthesis.cancel();
+        if (deepgramTTS.isSpeaking() && isAISpeaking) {
+            deepgramTTS.stop();
             setIsAISpeaking(false);
-            setCurrentUtterance(null);
             onQuestionReceived?.(currentQuestion, false);
         }
-    }, [speechSynthesis, currentUtterance, isAISpeaking, currentQuestion, onQuestionReceived]);
+    }, [isAISpeaking, currentQuestion, onQuestionReceived]);
 
     const handleMessage = useCallback((data: any) => {
+        console.log('📨 Received WebSocket message:', data.type, data);
+
         switch (data.type) {
             case "interview_started":
                 addMessage("system", `Interview started for ${data.candidate_name || "candidate"}`);
@@ -301,7 +252,7 @@ const VideoInterviewSystem = forwardRef<VideoInterviewSystemRef, VideoInterviewS
                 addMessage("system", "Interview completed! View your results below.");
                 setCurrentQuestion("");
                 // Stop any ongoing speech
-                if (speechSynthesis) speechSynthesis.cancel();
+                deepgramTTS.stop();
                 // Pass final assessment and conversation to parent
                 onInterviewComplete(assessment, messages);
                 break;
@@ -310,7 +261,7 @@ const VideoInterviewSystem = forwardRef<VideoInterviewSystemRef, VideoInterviewS
                 addMessage("system", "Interview has been ended.");
                 setCurrentQuestion("");
                 // Stop any ongoing speech
-                if (speechSynthesis) speechSynthesis.cancel();
+                deepgramTTS.stop();
                 // Call parent handler to navigate away
                 if (onEndInterview) {
                     onEndInterview();
@@ -320,6 +271,15 @@ const VideoInterviewSystem = forwardRef<VideoInterviewSystemRef, VideoInterviewS
                 setProgress(data.progress || progress);
                 setTimeRemaining(data.time_remaining || timeRemaining);
                 addMessage("system", data.message);
+
+                // Check if the status update message contains AI responses that should be spoken
+                if (data.message && data.message.length > 20 &&
+                    (data.message.includes('?') || data.message.includes('Tell me') ||
+                        data.message.includes('Can you') || data.message.includes('What') ||
+                        data.message.includes('How') || data.message.includes('Why'))) {
+                    console.log('🔊 Speaking status update as it appears to be an AI response:', data.message);
+                    speakAIResponse(data.message);
+                }
                 break;
             case "error":
                 addMessage("error", `Error: ${data.message}`);
@@ -327,7 +287,7 @@ const VideoInterviewSystem = forwardRef<VideoInterviewSystemRef, VideoInterviewS
             default:
                 console.log("Unknown message type:", data);
         }
-    }, [addMessage, progress, timeRemaining, messages, onInterviewComplete, onEndInterview, speakAIResponse, speechSynthesis]);
+    }, [addMessage, progress, timeRemaining, messages, onInterviewComplete, onEndInterview, speakAIResponse]);
 
     const connectToInterview = useCallback(() => {
         if (connectionStatus === "connected" || connectionStatus === "connecting") return;
@@ -418,16 +378,22 @@ const VideoInterviewSystem = forwardRef<VideoInterviewSystemRef, VideoInterviewS
         // Set ending flag immediately to prevent multiple calls
         setIsEnding(true);
 
+        // Clear the text area first
+        setInput("");
+        setCurrentQuestion("");
+
         // Add "end" message to chat on behalf of user
         addMessage("user", "end");
 
-        // Send "end" message to backend if WebSocket is available
+        // Send JUST "end" as per API specification
         if (ws && ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({
-                type: "end_interview",
-                payload: { message: "end" }
+                type: "submit_answer",
+                payload: {
+                    answer: "end"
+                }
             }));
-            console.log('📤 Sent end message to backend');
+            console.log('📤 Sent "end" message to backend');
         }
 
         // That's it! Don't call parent handler to avoid loops

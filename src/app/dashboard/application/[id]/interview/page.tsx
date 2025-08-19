@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Video, VideoOff, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -90,6 +90,45 @@ export default function InterviewPage() {
     // Use application ID as interview ID
     const applicationId = id as string;
 
+    // Debug: Monitor captured images state changes
+    useEffect(() => {
+        console.log('🔍 Captured images state changed:', {
+            count: capturedImages.length,
+            images: capturedImages
+        });
+    }, [capturedImages]);
+
+    // Debug: Periodic state monitor during interview
+    useEffect(() => {
+        if (interviewStatus === "connected") {
+            const monitor = setInterval(() => {
+                console.log('⏰ Periodic state check - captured images:', {
+                    count: capturedImages.length,
+                    images: capturedImages,
+                    status: interviewStatus
+                });
+            }, 15000); // Every 15 seconds
+
+            return () => clearInterval(monitor);
+        }
+    }, [interviewStatus, capturedImages]);
+
+    // Debug: Manual trigger for testing image storage
+    const debugStoreImages = () => {
+        console.log('🧪 DEBUG: Manual store images trigger clicked');
+        console.log('🧪 DEBUG: Current capturedImages state:', capturedImages);
+        console.log('🧪 DEBUG: Current capturedImages length:', capturedImages.length);
+
+        if (capturedImages.length === 0) {
+            console.log('🧪 DEBUG: No images in state, using test images');
+            // For testing, use some test URLs if no real images
+            const testImages = ['https://via.placeholder.com/640x480/0000FF/FFFFFF?text=Test+Image+1'];
+            storeImagesInInterviewArtifact(testImages);
+        } else {
+            storeImagesInInterviewArtifact(capturedImages);
+        }
+    };
+
     // Handle status changes from AIInterview component
     const handleStatusChange = async (status: InterviewStatus) => {
         setInterviewStatus(status);
@@ -116,7 +155,11 @@ export default function InterviewPage() {
 
         // Store captured images after ending
         setTimeout(() => {
-            storeInterviewImages();
+            setCapturedImages(currentImages => {
+                console.log('📸 Storing images on user end:', currentImages.length);
+                storeImagesInInterviewArtifact(currentImages);
+                return currentImages;
+            });
         }, 1000);
 
         // Navigate to interview results page after a short delay
@@ -141,18 +184,30 @@ export default function InterviewPage() {
         console.log('🎉 Interview completed! Backend should handle data persistence.');
         console.log('📊 Final Assessment:', finalAssessment);
         console.log('💬 Conversation:', conversation.length, 'messages');
+        console.log('📸 Current captured images count:', capturedImages.length);
+        console.log('📸 Current captured images array:', capturedImages);
 
         // Mark interview as completed
         setInterviewStatus("completed");
         toast.success("Interview completed successfully!");
 
-        // Store captured images in interview artifacts - with polling for backend processing
-        setTimeout(() => {
-            storeInterviewImages();
-        }, 2000); // Give backend more time to create and update interview artifacts
+        // Wait a moment to ensure all images are captured and backend processes interview
+        console.log('⏳ Waiting for backend to create interview artifacts and final image captures...');
+        await new Promise(resolve => setTimeout(resolve, 3000)); // Give backend time to create artifacts
+
+        // Get the most current state by using a callback
+        setCapturedImages(currentImages => {
+            console.log('📸 Final captured images count after wait:', currentImages.length);
+            console.log('📸 Final captured images array after wait:', currentImages);
+
+            // Store captured images using the simplified approach
+            storeImagesInInterviewArtifact(currentImages);
+
+            return currentImages; // Don't change the state
+        });
 
         // Start countdown timer for redirect
-        let countdown = 10; // Extended time for backend processing
+        let countdown = 5; // Reduced since images are stored immediately
         setRedirectTimer(countdown);
 
         const timer = setInterval(() => {
@@ -170,15 +225,54 @@ export default function InterviewPage() {
         return () => clearInterval(timer);
     };
 
-    // Handle image capture
-    const handleImageCaptured = (imageUrl: string) => {
-        console.log('📸 Image captured:', imageUrl);
-        setCapturedImages(prev => {
-            const newImages = [...prev, imageUrl];
-            console.log('📷 Updated captured images array:', newImages);
-            return newImages;
-        });
-    };
+    // Handle image capture - receives blob from VideoFeed and handles all storage
+    const handleImageCaptured = useCallback(async (imageBlob: Blob) => {
+        console.log('📸 Image blob received from VideoFeed, size:', imageBlob.size, 'bytes');
+
+        try {
+            // Generate unique filename
+            const timestamp = Date.now();
+            const filename = `interview-${applicationId}-${timestamp}.jpg`;
+            const filePath = `interviews/${applicationId}/${filename}`;
+
+            console.log('📤 Uploading to Supabase storage:', filePath);
+
+            // Upload to Supabase storage
+            const { data: uploadData, error: uploadError } = await supabase.storage
+                .from('pictures')
+                .upload(filePath, imageBlob, {
+                    contentType: 'image/jpeg',
+                    upsert: false
+                });
+
+            if (uploadError) {
+                console.error('❌ Upload error:', uploadError);
+                return;
+            }
+
+            // Get public URL
+            const { data: { publicUrl } } = supabase.storage
+                .from('pictures')
+                .getPublicUrl(filePath);
+
+            console.log('✅ Image uploaded successfully:', publicUrl);
+
+            // Add to captured images state
+            setCapturedImages(prev => {
+                const newImages = [...prev, publicUrl];
+                console.log('📷 Updated captured images array:', {
+                    previousCount: prev.length,
+                    newCount: newImages.length,
+                    newImageUrl: publicUrl,
+                    totalImages: newImages.length
+                });
+                return newImages;
+            });
+
+        } catch (error) {
+            console.error('❌ Error handling image capture:', error);
+        }
+    }, []); // Empty dependencies to prevent re-creation
 
     // Handle video ready state
     const handleVideoReady = (isReady: boolean) => {
@@ -192,19 +286,218 @@ export default function InterviewPage() {
         console.log('🎤 AI speaking state:', isAISpeaking);
     };
 
-    // Store interview images (simplified - let backend handle complex logic)
-    const storeInterviewImages = async () => {
-        if (capturedImages.length === 0) {
+    // Simplified approach: Store images directly in interview_artifacts table
+    const storeImagesInInterviewArtifact = async (imagesToStore: string[]) => {
+        console.log(`🎯 SIMPLIFIED APPROACH: Called with ${imagesToStore.length} images`);
+
+        if (imagesToStore.length === 0) {
+            console.log('📷 No images to store - array is empty');
+            return;
+        }
+
+        try {
+            console.log('📋 Step 1: Getting interview_artifact_id from applications table...');
+            console.log('📋 Application ID:', applicationId);
+
+            // Step 1: Get interview_artifact_id from applications table (backend puts it there after interview)
+            const { data: applicationData, error: applicationError } = await supabase
+                .from('applications')
+                .select('interview_artifact_id')
+                .eq('id', applicationId)
+                .single();
+
+            console.log('📋 Applications query result:', { data: applicationData, error: applicationError });
+
+            if (applicationError) {
+                console.error('❌ Database error fetching application:', applicationError);
+                console.log('⏳ Backend might still be processing, trying again in 5 seconds...');
+
+                // Try once more after a delay (give backend more time)
+                setTimeout(() => {
+                    console.log('🔄 Retrying storeImagesInInterviewArtifact...');
+                    storeImagesInInterviewArtifact(imagesToStore);
+                }, 5000);
+                return;
+            }
+
+            if (!applicationData?.interview_artifact_id) {
+                console.log('⏳ interview_artifact_id not found yet, backend still processing...');
+                console.log('⏳ Retrying in 5 seconds...');
+
+                setTimeout(() => {
+                    console.log('🔄 Retrying storeImagesInInterviewArtifact...');
+                    storeImagesInInterviewArtifact(imagesToStore);
+                }, 5000);
+                return;
+            }
+
+            // Parse the comma-separated artifact IDs and get the latest one
+            const artifactIdsString = applicationData.interview_artifact_id.trim();
+            console.log('📋 Raw interview_artifact_id string:', artifactIdsString);
+
+            const artifactIds = artifactIdsString.split(',').map((id: string) => id.trim());
+            const latestArtifactId = artifactIds[artifactIds.length - 1]; // Get the last/latest one
+
+            console.log('📋 All artifact IDs:', artifactIds);
+            console.log('✅ Using latest artifact ID:', latestArtifactId);
+
+            // Step 2: Update interview_artifacts table with image URLs
+            const imageUrls = imagesToStore.join(',');
+            console.log('📦 Step 2: Updating interview_artifacts with image URLs:', imageUrls);
+
+            const { data: updateData, error: updateError } = await supabase
+                .from('interview_artifacts')
+                .update({ image_url: imageUrls })
+                .eq('id', latestArtifactId)
+                .select();
+
+            if (updateError) {
+                console.error('❌ Error updating interview_artifacts with images:', updateError);
+                console.error('❌ Update error details:', {
+                    message: updateError.message,
+                    details: updateError.details,
+                    code: updateError.code
+                });
+            } else {
+                console.log('✅ SUCCESS: Images stored in interview_artifacts!', updateData);
+                toast.success(`${imagesToStore.length} images saved to interview record!`);
+            }
+
+        } catch (error) {
+            console.error('❌ Exception in storeImagesInInterviewArtifact:', error);
+        }
+    };
+
+    // Store interview images with proper artifact ID lookup (proper trigger)
+    const storeInterviewImagesWithProperArtifactId = async (imagesToStore?: string[]) => {
+        // Use passed images or current state, but get fresh state if none passed
+        const imageList = imagesToStore || capturedImages;
+
+        console.log('📤 storeInterviewImagesWithProperArtifactId called with:', {
+            passedImages: imagesToStore ? imagesToStore.length : 'none',
+            currentStateImages: capturedImages.length,
+            imageListToUse: imageList.length,
+            imageList: imageList
+        });
+
+        if (imageList.length === 0) {
             console.log('📷 No images to store');
             return;
         }
 
         try {
-            console.log(`📤 Attempting to store ${capturedImages.length} interview images for application: ${applicationId}`);
+            console.log(`📤 Storing ${imageList.length} interview images with proper artifact ID lookup`);
+
+            // Follow correct DB relationship: applications → interviews → interview_artifacts
+            // Step 1: Get the latest interview for this application
+            const { data: interviews, error: interviewError } = await supabase
+                .from('interviews')
+                .select('id')
+                .eq('application_id', applicationId)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+            if (interviewError) {
+                console.error('❌ Error fetching interview:', interviewError);
+                await storeInterviewImages(imageList);
+                return;
+            }
+
+            if (!interviews?.id) {
+                console.warn('⚠️ No interview found for application, using fallback storage');
+                await storeInterviewImages(imageList);
+                return;
+            }
+
+            // Step 2: Get the latest interview artifact for this interview
+            const { data: interviewArtifacts, error: fetchError } = await supabase
+                .from('interview_artifacts')
+                .select('id')
+                .eq('interview_id', interviews.id)
+                .order('timestamp', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+            if (fetchError) {
+                console.error('❌ Error fetching interview artifact:', fetchError);
+                await storeInterviewImages(imageList);
+                return;
+            }
+
+            if (!interviewArtifacts?.id) {
+                console.warn('⚠️ No interview artifact found, using fallback storage');
+                await storeInterviewImages(imageList);
+                return;
+            }
+
+            const artifactId = interviewArtifacts.id;
+            console.log('✅ Found interview artifact ID:', artifactId);
+
+            // Store images with proper artifact relationship
+            const imageData = imageList.map((imageUrl, index) => ({
+                interview_artifact_id: artifactId,
+                application_id: applicationId,
+                image_url: imageUrl,
+                captured_at: new Date().toISOString(),
+                image_sequence: index + 1,
+                image_type: 'interview_capture'
+            }));
+
+            const { error: insertError } = await supabase
+                .from('interview_images')
+                .insert(imageData);
+
+            if (insertError) {
+                console.error('❌ Error storing interview images with artifact ID:', insertError);
+                // Try fallback
+                await storeInterviewImages(imageList);
+            } else {
+                console.log('✅ Interview images stored successfully with artifact ID');
+
+                // Update interview_artifacts table with image URLs
+                const imageUrls = imageList.join(',');
+                console.log('📦 Updating interview_artifacts with image URLs:', imageUrls);
+
+                const { data: updateData, error: updateError } = await supabase
+                    .from('interview_artifacts')
+                    .update({
+                        image_url: imageUrls,
+                        timestamp: new Date().toISOString()
+                    })
+                    .eq('id', artifactId)
+                    .select();
+
+                if (updateError) {
+                    console.error('❌ Error updating interview_artifacts with image URLs:', updateError);
+                } else {
+                    console.log('✅ Interview artifact updated with image URLs:', updateData);
+                }
+            }
+
+        } catch (error) {
+            console.error('❌ Exception storing interview images with artifact ID:', error);
+            // Fallback to basic storage
+            await storeInterviewImages(imageList);
+        }
+    };
+
+    // Store interview images (fallback - simplified)
+    const storeInterviewImages = async (imagesToStore?: string[]) => {
+        // Use passed images or current state
+        const imageList = imagesToStore || capturedImages;
+
+        if (imageList.length === 0) {
+            console.log('📷 No images to store');
+            return;
+        }
+
+        try {
+            console.log(`📤 Attempting to store ${imageList.length} interview images for application: ${applicationId}`);
 
             // Simply try to store images in a basic interview_images table
             // The backend should handle the complex interview artifact logic
-            const imageData = capturedImages.map((imageUrl, index) => ({
+            const imageData = imageList.map((imageUrl, index) => ({
                 application_id: applicationId,
                 image_url: imageUrl,
                 captured_at: new Date().toISOString(),
@@ -271,7 +564,7 @@ export default function InterviewPage() {
                         applicationId={applicationId}
                         isInterviewActive={interviewStatus === "connected"}
                         onVideoReady={handleVideoReady}
-                        onScreenshotCaptured={handleImageCaptured}
+                        onImageCaptured={handleImageCaptured}
                         aiSpeakingState={aiSpeakingState}
                         selectedVideoDevice={selectedVideoDevice}
                         selectedAudioDevice={selectedAudioInputDevice}
@@ -279,7 +572,7 @@ export default function InterviewPage() {
 
                     {/* End Interview Button Overlay */}
                     {(interviewStatus === "connected" || interviewStatus === "connecting") && !isEndingInProgress && (
-                        <div className="absolute top-8 left-8 z-50">
+                        <div className="absolute top-8 left-8 z-50 flex gap-2">
                             <Button
                                 onClick={handleEndInterviewClick}
                                 disabled={isEndingInProgress}
@@ -289,6 +582,16 @@ export default function InterviewPage() {
                             >
                                 <Square className="w-4 h-4 mr-2" />
                                 {isEndingInProgress ? "Ending..." : "End Interview"}
+                            </Button>
+
+                            {/* Debug button */}
+                            <Button
+                                onClick={debugStoreImages}
+                                variant="secondary"
+                                size="sm"
+                                className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg backdrop-blur-sm bg-opacity-90 border-0"
+                            >
+                                🧪 Test Store Images
                             </Button>
                         </div>
                     )}
