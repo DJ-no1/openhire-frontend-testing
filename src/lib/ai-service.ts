@@ -11,6 +11,8 @@ export interface GenerateDescriptionRequest {
     salary?: string;
     custom_requirements?: string;
     company_details?: string; // New field for company information
+    industry?: string;
+    resume_threshold?: string;
 }
 
 export interface GenerateDescriptionResponse {
@@ -55,7 +57,7 @@ class AIService {
 
     // Fallback method for when AI service is unavailable
     generateFallbackDescription(request: GenerateDescriptionRequest): JobDescription {
-        const { title, company_name, skills, experience_level, job_type, location, custom_requirements, company_details } = request;
+        const { title, company_name, skills, experience_level, job_type, location, custom_requirements, company_details, industry, resume_threshold } = request;
 
         // Create more dynamic templates based on job title and skills
         const isEngineeringRole = title.toLowerCase().includes('engineer') || title.toLowerCase().includes('developer');
@@ -140,7 +142,9 @@ class AIService {
             requirements: baseRequirements,
             responsibilities: baseResponsibilities,
             benefits: baseBenefits,
-            experience: `${companyContext}\n\n${this.getExperienceDescription(experience_level)}`
+            experience: `${companyContext}\n\n${this.getExperienceDescription(experience_level)}`,
+            industry: industry || "IT",
+            resume_threshold: resume_threshold || "none"
         };
     }
 

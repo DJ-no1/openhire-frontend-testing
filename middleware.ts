@@ -12,6 +12,7 @@ export async function middleware(request: NextRequest) {
         pathname.startsWith('/public') ||
         pathname.startsWith('/test') ||
         pathname.startsWith('/jobs') ||
+        pathname.includes('/interview-result') || // Allow interview-result pages for testing
         pathname === '/') {
         return NextResponse.next();
     }

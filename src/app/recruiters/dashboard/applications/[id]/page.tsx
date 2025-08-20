@@ -868,20 +868,22 @@ export default function ApplicationDetailPage() {
                                 </CardContent>
                             </Card>
 
-                            {/* Interview Status */}
+                            {/* Interview Analysis */}
                             <Card>
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2">
-                                        <Clock className="h-5 w-5" />
-                                        Interview Status
+                                        <Brain className="h-5 w-5" />
+                                        Interview Analysis
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
                                     <div className="text-center py-4">
-                                        <Clock className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                                        <p className="text-sm text-gray-600 mb-3">No interview scheduled</p>
-                                        <Button variant="outline" size="sm">
-                                            Schedule Interview
+                                        <Button 
+                                            className="w-full"
+                                            onClick={() => router.push(`/recruiters/dashboard/applications/${applicationId}/interview-analysis`)}
+                                        >
+                                            <BarChart3 className="h-4 w-4 mr-2" />
+                                            View Detailed Analysis
                                         </Button>
                                     </div>
                                 </CardContent>

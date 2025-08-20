@@ -57,7 +57,9 @@ export const AIDescriptionGenerator: React.FC<AIDescriptionGeneratorProps> = ({
                 location: formData.location,
                 salary: formData.salary,
                 custom_requirements: customRequirements,
-                company_details: companyDetails
+                company_details: companyDetails,
+                industry: description?.industry || "IT",
+                resume_threshold: description?.resume_threshold || "none"
             };
 
             // Generate description using frontend-only template system
@@ -92,7 +94,7 @@ export const AIDescriptionGenerator: React.FC<AIDescriptionGeneratorProps> = ({
 
         const updatedDescription = { ...description };
 
-        if (section === 'experience') {
+        if (section === 'experience' || section === 'industry' || section === 'resume_threshold') {
             updatedDescription[section] = tempEdit;
         } else {
             // For array fields (requirements, responsibilities, benefits)
@@ -239,6 +241,64 @@ export const AIDescriptionGenerator: React.FC<AIDescriptionGeneratorProps> = ({
             {/* Generated Description Sections */}
             {description && (
                 <div className="space-y-4">
+                    {/* Industry and Resume Threshold Fields */}
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-lg flex items-center gap-2">
+                                <Badge className="h-4 w-4">S</Badge>
+                                Job Settings
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium">Industry *</label>
+                                    <select
+                                        value={description.industry}
+                                        onChange={(e) => {
+                                            const updatedDescription = { ...description, industry: e.target.value };
+                                            onDescriptionChange(updatedDescription);
+                                        }}
+                                        className="w-full px-3 py-2 text-sm border border-input bg-background rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                    >
+                                        <option value="IT">IT</option>
+                                        <option value="BFSI">BFSI (Banking, Finance, Insurance)</option>
+                                        <option value="Healthcare">Health Care</option>
+                                        <option value="Education">Education</option>
+                                        <option value="Sales_Marketing">Sales & Marketing</option>
+                                        <option value="Government">Government</option>
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <div className="flex items-center gap-2">
+                                        <label className="text-sm font-medium">Resume Threshold</label>
+                                        <span className="text-xs text-muted-foreground cursor-help" title="Threshold value for the resume to allow interview">
+                                            (i)
+                                        </span>
+                                    </div>
+                                    <select
+                                        value={description.resume_threshold}
+                                        onChange={(e) => {
+                                            const updatedDescription = { ...description, resume_threshold: e.target.value };
+                                            onDescriptionChange(updatedDescription);
+                                        }}
+                                        className="w-full px-3 py-2 text-sm border border-input bg-background rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                    >
+                                        <option value="none">None</option>
+                                        <option value="40">40&gt;</option>
+                                        <option value="50">50&gt;</option>
+                                        <option value="60">60&gt;</option>
+                                        <option value="70">70&gt;</option>
+                                        <option value="80">80&gt;</option>
+                                    </select>
+                                    <p className="text-xs text-muted-foreground">
+                                        Threshold value for the resume to allow interview
+                                    </p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
                     {renderSection(
                         'Job Requirements',
                         'requirements',

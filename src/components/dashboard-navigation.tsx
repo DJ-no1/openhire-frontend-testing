@@ -71,8 +71,8 @@ export function DashboardNavigation() {
                     icon: <Users className="h-4 w-4" />
                 },
                 {
-                    label: 'Interviews',
-                    href: '/dashboard/interviews',
+                    label: 'My Interviews',
+                    href: '/dashboard/interview',
                     icon: <Calendar className="h-4 w-4" />
                 }
             ];
@@ -95,8 +95,8 @@ export function DashboardNavigation() {
                     icon: <FileText className="h-4 w-4" />
                 },
                 {
-                    label: 'Interviews',
-                    href: '/dashboard/interviews',
+                    label: 'My Interviews',
+                    href: '/dashboard/interview',
                     icon: <Calendar className="h-4 w-4" />
                 }
             ];

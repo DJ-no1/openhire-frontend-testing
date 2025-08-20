@@ -32,6 +32,7 @@ export interface DatabaseApplication {
     resume_url?: string; // This should be UUID according to your schema
     status: string;
     created_at?: string;
+    interview_artifact_id?: string | null; // Added interview_artifact_id field
     // Joined data
     job?: DatabaseJob;
     candidate?: DatabaseUser;

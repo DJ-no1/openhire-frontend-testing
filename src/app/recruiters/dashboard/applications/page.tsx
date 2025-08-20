@@ -262,7 +262,7 @@ export default function ApplicationsPage() {
 
     const handleViewDetails = (applicationId: string) => {
         // Navigate to application details page
-        router.push(`/recruiters/dashboard/applications/${applicationId}`);
+        router.push(`/recruiters/dashboard/applications/${applicationId}/interview-analysis`);
     };
 
     const handleUpdateStatus = async (applicationId: string, newStatus: string) => {

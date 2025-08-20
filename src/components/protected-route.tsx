@@ -20,6 +20,13 @@ export function ProtectedRoute({
     const [shouldRender, setShouldRender] = useState(false);
 
     useEffect(() => {
+        // Allow interview-result pages for testing without authentication
+        if (typeof window !== 'undefined' && window.location.pathname.includes('/interview-result')) {
+            console.log('🔓 Bypassing ProtectedRoute for interview-result page');
+            setShouldRender(true);
+            return;
+        }
+
         if (loading) return;
 
         if (!user) {

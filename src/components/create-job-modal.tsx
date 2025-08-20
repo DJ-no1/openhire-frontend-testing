@@ -1,5 +1,3 @@
-'use client';
-
 import React, { useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -11,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { JobSkillSelector } from '@/components/job-skill-selector';
 import { AIDescriptionGenerator } from '@/components/ai-description-generator';
 import { jobService, JobDescription, validateJobData } from '@/lib/job-service';
@@ -25,7 +24,8 @@ import {
     Save,
     Send,
     Loader2,
-    X
+    X,
+    Info
 } from 'lucide-react';
 
 interface CreateJobModalProps {
@@ -55,6 +55,34 @@ const JOB_TYPES = [
     'Freelance'
 ];
 
+const INDUSTRY_OPTIONS = [
+    { value: "IT", label: "IT" },
+    { value: "BFSI", label: "BFSI (Banking, Finance, Insurance)" },
+    { value: "Healthcare", label: "Health Care" },
+    { value: "Education", label: "Education" },
+    { value: "Sales_Marketing", label: "Sales & Marketing" },
+    { value: "Government", label: "Government" }
+];
+
+const RESUME_THRESHOLD_OPTIONS = [
+    { value: "none", label: "None" },
+    { value: "40", label: "40>" },
+    { value: "50", label: "50>" },
+    { value: "60", label: "60>" },
+    { value: "70", label: "70>" },
+    { value: "80", label: "80>" }
+];
+
+const INTERVIEW_DURATION_OPTIONS = [
+    { value: "5", label: "5 minutes" },
+    { value: "10", label: "10 minutes" },
+    { value: "15", label: "15 minutes", recommended: true },
+    { value: "20", label: "20 minutes" },
+    { value: "30", label: "30 minutes" },
+    { value: "45", label: "45 minutes" },
+    { value: "60", label: "60 minutes" }
+];
+
 const EXPERIENCE_LEVELS = [
     { value: 'entry', label: 'Entry Level (0-2 years)' },
     { value: 'mid', label: 'Mid Level (2-5 years)' },
@@ -74,7 +102,7 @@ export function CreateJobModal({ open, onOpenChange, onJobCreated }: CreateJobMo
         salary: '',
         job_type: 'Full-time',
         end_date: '',
-        interview_duration: '45',
+        interview_duration: '15',
         custom_requirements: '',
         company_details: ''
     });
@@ -95,7 +123,7 @@ export function CreateJobModal({ open, onOpenChange, onJobCreated }: CreateJobMo
             salary: '',
             job_type: 'Full-time',
             end_date: '',
-            interview_duration: '45',
+            interview_duration: '15',
             custom_requirements: '',
             company_details: ''
         });
@@ -150,12 +178,19 @@ export function CreateJobModal({ open, onOpenChange, onJobCreated }: CreateJobMo
 
         setLoading(true);
         try {
+            // Add industry and resume_threshold to the description object
+            const enhancedDescription = {
+                ...description,
+                industry: description?.industry || "IT",
+                resume_threshold: description?.resume_threshold || "none"
+            };
+
             const jobData = {
                 recruiter_id: user.id,
                 title: formData.title,
                 company_name: formData.company_name,
                 location: formData.location,
-                description: description,
+                description: enhancedDescription,
                 salary: formData.salary || undefined,
                 skills: skills.join(', '),
                 job_type: formData.job_type,
@@ -313,19 +348,29 @@ export function CreateJobModal({ open, onOpenChange, onJobCreated }: CreateJobMo
 
                                             <div className="space-y-2">
                                                 <Label htmlFor="interview_duration">Interview Duration (minutes) *</Label>
-                                                <div className="relative">
-                                                    <Clock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                                    <Input
-                                                        id="interview_duration"
-                                                        type="number"
-                                                        min="15"
-                                                        max="180"
-                                                        placeholder="45"
-                                                        value={formData.interview_duration}
-                                                        onChange={(e) => handleInputChange('interview_duration', e.target.value)}
-                                                        className="pl-10"
-                                                    />
-                                                </div>
+                                                <Select
+                                                    value={formData.interview_duration}
+                                                    onValueChange={(value) => handleInputChange('interview_duration', value)}
+                                                >
+                                                    <SelectTrigger>
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {INTERVIEW_DURATION_OPTIONS.map(option => (
+                                                            <SelectItem key={option.value} value={option.value}>
+                                                                {option.label}
+                                                                {option.recommended && (
+                                                                    <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-1 py-0.5 rounded">
+                                                                        Recommended
+                                                                    </span>
+                                                                )}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                <p className="text-xs text-muted-foreground">
+                                                    15 minutes is the recommended duration for most interviews
+                                                </p>
                                             </div>
                                         </div>
 

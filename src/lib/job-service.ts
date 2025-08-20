@@ -7,6 +7,8 @@ export interface JobDescription {
     responsibilities: string[];
     benefits: string[];
     experience: string;
+    industry: string;
+    resume_threshold: string;
 }
 
 export interface CreateJobData {
