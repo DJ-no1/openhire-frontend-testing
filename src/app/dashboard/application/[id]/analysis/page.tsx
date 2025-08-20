@@ -19,7 +19,8 @@ import {
     Clock,
     User,
     Brain,
-    CheckCircle
+    CheckCircle,
+    Target
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -212,15 +213,13 @@ export default function ApplicationAnalysisPage() {
                 .single();
 
             if (appError) {
-                console.error('❌ Error checking application:', appError);
-                // If error checking application, proceed to permission setup
+                console.error('❌ Error checking application:', appError?.message || appError);
                 router.push(`/dashboard/application/${application.id}/permission`);
                 return;
             }
 
             if (!appData?.interview_artifact_id) {
                 console.log('📭 No interview artifact ID found, starting new interview');
-                // No interview artifact ID means no interview started yet
                 router.push(`/dashboard/application/${application.id}/permission`);
                 return;
             }
@@ -244,16 +243,18 @@ export default function ApplicationAnalysisPage() {
                 return;
             }
 
-            // Step 2: Get the interview artifact details
+
+            // Step 2: Get the interview artifact details (remove completed_at)
             const { data: artifact, error: artifactError } = await supabase
                 .from('interview_artifacts')
-                .select('id, status, completed_at')
+                .select('id, status')
                 .eq('id', interviewArtifactId)
                 .single();
 
-            if (artifactError) {
-                console.error('❌ Error fetching interview artifact:', artifactError);
-                // If error fetching artifact but ID exists, might be database issue
+            if (artifactError || !artifact || Object.keys(artifact).length === 0) {
+                const errorMsg = artifactError?.message || 'No interview artifact found or artifact is empty.';
+                console.error('❌ Error fetching interview artifact:', errorMsg);
+                toast.error(`Error fetching interview artifact: ${errorMsg}`);
                 const proceedAnyway = window.confirm(
                     'There seems to be an issue with the interview data. Would you like to start a new interview?'
                 );
@@ -266,7 +267,7 @@ export default function ApplicationAnalysisPage() {
             console.log('📊 Found interview artifact:', artifact);
 
             // Step 3: Handle different interview states
-            if (artifact.status === 'completed' || artifact.completed_at) {
+            if (artifact.status === 'completed') {
                 toast.info('Interview already completed. Redirecting to results...');
                 router.push(`/dashboard/application/${application.id}/interview-result`);
                 return;
@@ -289,7 +290,7 @@ export default function ApplicationAnalysisPage() {
             router.push(`/dashboard/application/${application.id}/permission`);
 
         } catch (error) {
-            console.error('❌ Error checking existing interview:', error);
+            console.error('❌ Error checking existing interview:', error instanceof Error ? error.message : error);
             toast.error('Error checking interview status. Please try again.');
         } finally {
             setCheckingInterview(false);
@@ -599,4 +600,376 @@ export default function ApplicationAnalysisPage() {
             </main>
         </div>
     );
+}
+
+
+// --- V2 Implementation Inserted Below ---
+// This is a new version of the ApplicationAnalysisPage for side-by-side development/testing
+// You can use <ApplicationAnalysisPageV2 params={{ applicationId: ... }} /> as needed
+
+
+// --- V2 Implementation Inserted Below ---
+// This is a new version of the ApplicationAnalysisPage for side-by-side development/testing
+// You can use <ApplicationAnalysisPageV2 params={{ applicationId: ... }} /> as needed
+
+import { createClient } from '@supabase/supabase-js'
+
+// Initialize Supabase client for V2
+const supabaseV2 = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
+
+interface ApplicationV2 {
+    id: string
+    interview_artifact_id: string | null
+    job_id: string
+    candidate_id: string
+    status: string
+    created_at: string
+    resume_url: string | null
+    job?: {
+        title: string
+        company_name: string
+        location: string
+    }
+}
+
+interface ResumeV2 {
+    id: string
+    score: number | null
+    scoring_details: any
+    file_path: string | null
+    created_at: string
+}
+
+interface InterviewButtonStateV2 {
+    color: 'default' | 'green'
+    text: string
+    action: () => void
+    disabled: boolean
+}
+
+export function ApplicationAnalysisPageV2({
+    params
+}: {
+    params: { applicationId: string }
+}) {
+    // Use hooks from the main file imports
+    const router = useRouter()
+    const [application, setApplication] = useState<ApplicationV2 | null>(null)
+    const [resume, setResume] = useState<ResumeV2 | null>(null)
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
+    const [buttonState, setButtonState] = useState<InterviewButtonStateV2>({
+        color: 'default',
+        text: 'Loading...',
+        action: () => { },
+        disabled: true
+    })
+
+    const formatDate = (dateString: string) => {
+        return new Date(dateString).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        })
+    }
+
+    const determineButtonState = (artifactIds: string | null): InterviewButtonStateV2 => {
+        if (!artifactIds || artifactIds.trim() === '') {
+            // No interview artifacts - redirect to permission page
+            return {
+                color: 'default',
+                text: 'Begin AI-Powered Interview',
+                action: () => router.push(`/applications/${params.applicationId}/permission`),
+                disabled: false
+            }
+        }
+
+        const ids = artifactIds.split(',').map(id => id.trim()).filter(id => id !== '')
+
+        if (ids.length === 1) {
+            // Single artifact - button green, go to interview result
+            return {
+                color: 'green',
+                text: 'View Interview Result',
+                action: () => router.push(`/applications/${params.applicationId}/interview-result/${ids[0]}`),
+                disabled: false
+            }
+        } else if (ids.length > 1) {
+            // Multiple artifacts - go to last one's result page
+            const lastId = ids[ids.length - 1]
+            return {
+                color: 'green',
+                text: 'View Latest Interview Result',
+                action: () => router.push(`/applications/${params.applicationId}/interview-result/${lastId}`),
+                disabled: false
+            }
+        }
+
+        return {
+            color: 'default',
+            text: 'Begin AI-Powered Interview',
+            action: () => router.push(`/applications/${params.applicationId}/permission`),
+            disabled: false
+        }
+    }
+
+    useEffect(() => {
+        const fetchApplicationData = async () => {
+            try {
+                setLoading(true)
+                setError(null)
+
+                // Fetch application with job details
+                const { data: applicationData, error: appError } = await supabaseV2
+                    .from('applications')
+                    .select(`
+                        *,
+                        job:jobs (
+                            title,
+                            company_name,
+                            location
+                        )
+                    `)
+                    .eq('id', params.applicationId)
+                    .single()
+
+                if (appError) {
+                    throw new Error(`Failed to fetch application: ${appError.message}`)
+                }
+
+                if (!applicationData) {
+                    throw new Error('Application not found')
+                }
+
+                setApplication(applicationData)
+
+                // Fetch resume data if resume_url exists
+                if (applicationData.resume_url) {
+                    const { data: resumeData, error: resumeError } = await supabaseV2
+                        .from('user_resume')
+                        .select('*')
+                        .eq('id', applicationData.resume_url)
+                        .single()
+
+                    if (resumeError) {
+                        console.warn('Failed to fetch resume data:', resumeError.message)
+                    } else {
+                        setResume(resumeData)
+                    }
+                }
+
+                // Determine button state based on interview artifacts
+                const buttonState = determineButtonState(applicationData.interview_artifact_id)
+                setButtonState(buttonState)
+
+            } catch (err) {
+                setError(err instanceof Error ? err.message : 'An unexpected error occurred')
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        if (params.applicationId) {
+            fetchApplicationData()
+        }
+    }, [params.applicationId, router])
+
+    if (loading) {
+        return (
+            <div className="container mx-auto px-4 py-8">
+                <div className="max-w-4xl mx-auto">
+                    <div className="animate-pulse space-y-4">
+                        <div className="h-8 bg-gray-200 rounded w-1/2"></div>
+                        <div className="h-32 bg-gray-200 rounded"></div>
+                        <div className="h-24 bg-gray-200 rounded"></div>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
+    if (error) {
+        return (
+            <div className="container mx-auto px-4 py-8">
+                <div className="max-w-4xl mx-auto">
+                    <Card className="border-red-200 bg-red-50">
+                        <CardContent className="pt-6">
+                            <div className="flex items-center space-x-2 text-red-600">
+                                <FileText className="h-5 w-5" />
+                                <span className="font-semibold">Error Loading Application</span>
+                            </div>
+                            <p className="mt-2 text-red-700">{error}</p>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+        )
+    }
+
+    if (!application) {
+        return (
+            <div className="container mx-auto px-4 py-8">
+                <div className="max-w-4xl mx-auto">
+                    <Card>
+                        <CardContent className="pt-6">
+                            <p className="text-gray-600">Application not found.</p>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+        )
+    }
+
+    return (
+        <div className="container mx-auto px-4 py-8">
+            <div className="max-w-4xl mx-auto space-y-6">
+                {/* Header */}
+                <div className="space-y-2">
+                    <h1 className="text-3xl font-bold text-gray-900">
+                        AI-Powered Resume Analysis
+                    </h1>
+                    <p className="text-lg text-gray-600">
+                        Comprehensive compatibility assessment for{' '}
+                        <span className="font-semibold">
+                            {application.job?.title || 'Unknown Position'}
+                        </span>
+                    </p>
+                </div>
+
+                {/* Main Content */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Application Details */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center space-x-2">
+                                <Calendar className="h-5 w-5" />
+                                <span>Application Details</span>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div>
+                                <label className="text-sm font-medium text-gray-500">Applied Date</label>
+                                <p className="text-lg font-semibold">
+                                    {formatDate(application.created_at)}
+                                </p>
+                            </div>
+
+                            <div>
+                                <label className="text-sm font-medium text-gray-500">Resume Status</label>
+                                <div className="flex items-center space-x-2">
+                                    <Badge variant={resume ? 'default' : 'secondary'}>
+                                        {resume ? 'Analyzed' : 'Pending Analysis'}
+                                    </Badge>
+                                </div>
+                            </div>
+
+                            {resume?.score !== null && resume?.score !== undefined && (
+                                <div>
+                                    <label className="text-sm font-medium text-gray-500">Match Score</label>
+                                    <div className="flex items-center space-x-2">
+                                        <span className="text-2xl font-bold text-green-600">
+                                            {Math.round(resume.score)}%
+                                        </span>
+                                        <Target className="h-5 w-5 text-green-600" />
+                                    </div>
+                                </div>
+                            )}
+
+                            {application.job && (
+                                <div className="pt-4 border-t">
+                                    <div className="space-y-2">
+                                        <div>
+                                            <label className="text-sm font-medium text-gray-500">Company</label>
+                                            <p className="font-semibold">{application.job.company_name}</p>
+                                        </div>
+                                        {application.job.location && (
+                                            <div>
+                                                <label className="text-sm font-medium text-gray-500">Location</label>
+                                                <p>{application.job.location}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    {/* Interview Action */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center space-x-2">
+                                <Brain className="h-5 w-5" />
+                                <span>AI Interview Process</span>
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {resume ? (
+                                <div className="space-y-4">
+                                    <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                                        <h3 className="font-semibold text-green-800 mb-2">
+                                            Ready for AI Interview
+                                        </h3>
+                                        <p className="text-green-700 text-sm">
+                                            Start a comprehensive AI-powered interview to evaluate this candidate's
+                                            skills and fit.
+                                        </p>
+                                    </div>
+
+                                    <Button
+                                        onClick={buttonState.action}
+                                        disabled={buttonState.disabled}
+                                        className={`w-full ${buttonState.color === 'green'
+                                                ? 'bg-green-600 hover:bg-green-700 text-white'
+                                                : ''
+                                            }`}
+                                        size="lg"
+                                    >
+                                        {buttonState.text}
+                                    </Button>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                        <h3 className="font-semibold text-yellow-800 mb-2">
+                                            No Analysis Data Available
+                                        </h3>
+                                        <p className="text-yellow-700 text-sm">
+                                            The resume analysis data is not available for this application.
+                                        </p>
+                                    </div>
+
+                                    <Button
+                                        disabled
+                                        className="w-full"
+                                        size="lg"
+                                    >
+                                        Analysis Required Before Interview
+                                    </Button>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Resume Analysis Details */}
+                {resume?.scoring_details && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Analysis Details</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="bg-gray-50 p-4 rounded-lg">
+                                <pre className="text-sm text-gray-700 whitespace-pre-wrap">
+                                    {JSON.stringify(resume.scoring_details, null, 2)}
+                                </pre>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+            </div>
+        </div>
+    )
 }

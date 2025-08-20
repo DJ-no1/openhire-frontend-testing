@@ -56,13 +56,13 @@ export function ResumeBreakdownTab({ artifact, applicationDetails }: ResumeBreak
     const dbResumeData = applicationDetails?.resume_data;
     const resumeScore = dbResumeData?.score || artifact?.overall_score || 0;
     const scoringDetails = dbResumeData?.scoring_details;
-    
+
     // Parse scoring details if available
     let parsedScoringDetails = null;
     if (scoringDetails) {
         try {
-            parsedScoringDetails = typeof scoringDetails === 'string' 
-                ? JSON.parse(scoringDetails) 
+            parsedScoringDetails = typeof scoringDetails === 'string'
+                ? JSON.parse(scoringDetails)
                 : scoringDetails;
         } catch (error) {
             console.warn('Could not parse scoring details:', error);
@@ -72,7 +72,7 @@ export function ResumeBreakdownTab({ artifact, applicationDetails }: ResumeBreak
     // Use real data if available, otherwise fall back to mock data
     const analysisData = parsedScoringDetails || {};
     const dimensionBreakdown = analysisData.dimension_breakdown || {};
-    
+
     const resumeData = {
         overallScore: Math.round(resumeScore),
         confidence: analysisData.confidence || 75,

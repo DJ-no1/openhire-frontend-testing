@@ -269,9 +269,8 @@ export function RecruiterActionsTab({ artifact, applicationDetails, applicationI
                                         {[1, 2, 3, 4, 5].map((star) => (
                                             <Star
                                                 key={star}
-                                                className={`h-6 w-6 cursor-pointer ${
-                                                    star <= candidateRating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'
-                                                }`}
+                                                className={`h-6 w-6 cursor-pointer ${star <= candidateRating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'
+                                                    }`}
                                                 onClick={() => setCandidateRating(star)}
                                             />
                                         ))}
@@ -279,7 +278,7 @@ export function RecruiterActionsTab({ artifact, applicationDetails, applicationI
                                     </div>
                                 </div>
 
-                                <Button 
+                                <Button
                                     onClick={() => handleStatusUpdate(applicationStatus)}
                                     className="w-full"
                                 >
@@ -372,7 +371,7 @@ export function RecruiterActionsTab({ artifact, applicationDetails, applicationI
                                             id="interview-date"
                                             type="date"
                                             value={interviewSchedule.date}
-                                            onChange={(e) => setInterviewSchedule({...interviewSchedule, date: e.target.value})}
+                                            onChange={(e) => setInterviewSchedule({ ...interviewSchedule, date: e.target.value })}
                                             className="mt-1"
                                         />
                                     </div>
@@ -382,7 +381,7 @@ export function RecruiterActionsTab({ artifact, applicationDetails, applicationI
                                             id="interview-time"
                                             type="time"
                                             value={interviewSchedule.time}
-                                            onChange={(e) => setInterviewSchedule({...interviewSchedule, time: e.target.value})}
+                                            onChange={(e) => setInterviewSchedule({ ...interviewSchedule, time: e.target.value })}
                                             className="mt-1"
                                         />
                                     </div>
@@ -394,7 +393,7 @@ export function RecruiterActionsTab({ artifact, applicationDetails, applicationI
                                         <select
                                             id="interview-type"
                                             value={interviewSchedule.type}
-                                            onChange={(e) => setInterviewSchedule({...interviewSchedule, type: e.target.value})}
+                                            onChange={(e) => setInterviewSchedule({ ...interviewSchedule, type: e.target.value })}
                                             className="w-full mt-1 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                         >
                                             <option value="video">Video Interview</option>
@@ -408,7 +407,7 @@ export function RecruiterActionsTab({ artifact, applicationDetails, applicationI
                                         <select
                                             id="interview-duration"
                                             value={interviewSchedule.duration}
-                                            onChange={(e) => setInterviewSchedule({...interviewSchedule, duration: e.target.value})}
+                                            onChange={(e) => setInterviewSchedule({ ...interviewSchedule, duration: e.target.value })}
                                             className="w-full mt-1 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                         >
                                             <option value="30">30 minutes</option>

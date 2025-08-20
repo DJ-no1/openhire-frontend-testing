@@ -42,11 +42,11 @@ export class ErrorBoundary extends Component<Props, State> {
                     </CardHeader>
                     <CardContent>
                         <p className="text-red-600 text-sm mb-4">
-                            {this.props.fallbackMessage || 
-                             'An error occurred while loading this section. Please try refreshing or contact support if the problem persists.'}
+                            {this.props.fallbackMessage ||
+                                'An error occurred while loading this section. Please try refreshing or contact support if the problem persists.'}
                         </p>
                         {this.props.onRetry && (
-                            <Button 
+                            <Button
                                 onClick={() => {
                                     this.setState({ hasError: false, error: undefined });
                                     this.props.onRetry?.();

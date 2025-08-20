@@ -35,13 +35,13 @@ export function ScoreAnalysisTab({ artifact, applicationDetails }: ScoreAnalysis
     // Extract scoring data from actual database
     const resumeData = applicationDetails?.resume_data;
     const scoringDetails = resumeData?.scoring_details;
-    
+
     // Parse scoring details if available
     let parsedScoringDetails = null;
     if (scoringDetails) {
         try {
-            parsedScoringDetails = typeof scoringDetails === 'string' 
-                ? JSON.parse(scoringDetails) 
+            parsedScoringDetails = typeof scoringDetails === 'string'
+                ? JSON.parse(scoringDetails)
                 : scoringDetails;
         } catch (error) {
             console.warn('Could not parse scoring details:', error);
@@ -50,7 +50,7 @@ export function ScoreAnalysisTab({ artifact, applicationDetails }: ScoreAnalysis
 
     // Use real data if available, otherwise fall back to artifact data
     const assessment = parsedScoringDetails || artifact?.ai_assessment || artifact?.detailed_score || {};
-    
+
     // Extract scores - use actual data structure
     const universalScores = assessment?.universal_scores || {};
     const industryScores = assessment?.industry_competency_scores || {};
@@ -59,7 +59,7 @@ export function ScoreAnalysisTab({ artifact, applicationDetails }: ScoreAnalysis
     const confidenceLevel = assessment?.confidence_level || 'medium';
     const industryType = assessment?.industry_type || 'Technology';
     const recommendation = assessment?.final_recommendation || 'no_data';
-    
+
     // Extract feedback sections
     const feedback = assessment?.feedback || {};
     const universalFeedback = feedback?.universal_feedback_for_recruiters || '';
@@ -90,11 +90,11 @@ export function ScoreAnalysisTab({ artifact, applicationDetails }: ScoreAnalysis
 
     const mockFeedback = {
         universal: universalFeedback || "The candidate demonstrates strong communication skills and excellent problem-solving abilities. They show good adaptability and cultural fit for the organization. Leadership potential is evident through their experience in managing teams and projects. Areas for growth include further development in collaborative decision-making processes.",
-        
+
         industry: industryFeedback || "Strong technical foundation with excellent proficiency in modern development frameworks. The candidate shows solid understanding of system architecture and demonstrates good coding practices. Their debugging and problem-solving approach is methodical and effective. Would benefit from deeper exposure to large-scale distributed systems.",
-        
+
         overall: overallFeedback || "This candidate presents a well-rounded profile with strong technical capabilities and soft skills. They demonstrate the ability to grow into senior roles and contribute meaningfully to team objectives. Recommended for hire with standard onboarding and mentorship support.",
-        
+
         strengths: domainStrengths.length > 0 ? domainStrengths : [
             "Advanced React and TypeScript expertise",
             "Strong system design and architecture skills",
@@ -102,14 +102,14 @@ export function ScoreAnalysisTab({ artifact, applicationDetails }: ScoreAnalysis
             "Good understanding of scalability principles",
             "Clear communication of technical concepts"
         ],
-        
+
         improvements: domainImprovements.length > 0 ? domainImprovements : [
             "Gain experience with microservices architecture",
             "Deepen knowledge of cloud infrastructure",
             "Develop expertise in performance optimization",
             "Learn advanced database design patterns"
         ],
-        
+
         candidateImprovements: improvementAreas.length > 0 ? improvementAreas : [
             "Practice system design for large-scale applications",
             "Strengthen understanding of DevOps practices",
@@ -221,13 +221,13 @@ export function ScoreAnalysisTab({ artifact, applicationDetails }: ScoreAnalysis
                     </CardHeader>
                     <CardContent>
                         <UniversalScoresChart data={mockUniversalScores} />
-                        
+
                         {/* Skills Breakdown */}
                         <div className="mt-6 space-y-3">
                             {Object.entries(mockUniversalScores).map(([key, score]) => {
                                 const skillName = key.replace('_score', '').replace('_', ' ');
                                 const formattedName = skillName.charAt(0).toUpperCase() + skillName.slice(1);
-                                
+
                                 return (
                                     <div key={key} className="flex items-center justify-between">
                                         <span className="text-sm font-medium capitalize">{formattedName}</span>
@@ -257,14 +257,14 @@ export function ScoreAnalysisTab({ artifact, applicationDetails }: ScoreAnalysis
                     </CardHeader>
                     <CardContent>
                         <IndustryCompetencyChart data={mockIndustryScores} industryType={industryType} />
-                        
+
                         {/* Competency Breakdown */}
                         <div className="mt-6 space-y-3">
                             {Object.entries(mockIndustryScores).map(([key, score]) => {
                                 const competencyName = key.replace('_', ' ');
                                 const formattedName = competencyName.charAt(0).toUpperCase() + competencyName.slice(1);
                                 const numericScore = typeof score === 'number' ? score : 0;
-                                
+
                                 return (
                                     <div key={key} className="flex items-center justify-between">
                                         <span className="text-sm font-medium">{formattedName}</span>

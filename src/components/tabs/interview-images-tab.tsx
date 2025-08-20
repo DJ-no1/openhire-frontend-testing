@@ -55,7 +55,7 @@ export function InterviewImagesTab({ artifact, applicationDetails }: InterviewIm
 
         // Split by comma and clean up URLs
         const urls = imageUrlString.split(',').map(url => url.trim()).filter(url => url !== '');
-        
+
         return urls.map((url, index) => ({
             url,
             id: `img_${index}`,
@@ -188,9 +188,9 @@ export function InterviewImagesTab({ artifact, applicationDetails }: InterviewIm
                 <Card className="border-2 border-orange-200 bg-orange-50/30">
                     <CardContent className="p-6 text-center">
                         <Download className="h-8 w-8 text-orange-600 mx-auto mb-2" />
-                        <Button 
-                            variant="outline" 
-                            size="sm" 
+                        <Button
+                            variant="outline"
+                            size="sm"
                             onClick={handleDownloadAll}
                             className="mt-2"
                         >
@@ -235,7 +235,7 @@ export function InterviewImagesTab({ artifact, applicationDetails }: InterviewIm
                                 <div key={image.id} className="space-y-3">
                                     <div className="relative group">
                                         <ImagePreview image={image} isGridView={true} />
-                                        
+
                                         {/* Overlay with actions */}
                                         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all duration-200 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100">
                                             <div className="flex items-center gap-2">
@@ -264,18 +264,18 @@ export function InterviewImagesTab({ artifact, applicationDetails }: InterviewIm
                                                     </DialogContent>
                                                 </Dialog>
 
-                                                <Button 
-                                                    size="sm" 
-                                                    variant="secondary" 
+                                                <Button
+                                                    size="sm"
+                                                    variant="secondary"
                                                     className="h-8 w-8 p-0"
                                                     onClick={() => handleDownloadImage(image)}
                                                 >
                                                     <Download className="h-4 w-4" />
                                                 </Button>
 
-                                                <Button 
-                                                    size="sm" 
-                                                    variant="secondary" 
+                                                <Button
+                                                    size="sm"
+                                                    variant="secondary"
                                                     className="h-8 w-8 p-0"
                                                     onClick={() => window.open(image.url, '_blank')}
                                                 >
@@ -309,7 +309,7 @@ export function InterviewImagesTab({ artifact, applicationDetails }: InterviewIm
                             {images.map((image) => (
                                 <div key={image.id} className="flex items-center gap-4 p-4 border rounded-lg hover:bg-gray-50">
                                     <ImagePreview image={image} isGridView={false} />
-                                    
+
                                     <div className="flex-1">
                                         <h3 className="font-medium">Image {image.id.replace('img_', '')}</h3>
                                         <p className="text-sm text-gray-600">
@@ -348,8 +348,8 @@ export function InterviewImagesTab({ artifact, applicationDetails }: InterviewIm
                                             </DialogContent>
                                         </Dialog>
 
-                                        <Button 
-                                            size="sm" 
+                                        <Button
+                                            size="sm"
                                             variant="outline"
                                             onClick={() => handleDownloadImage(image)}
                                         >

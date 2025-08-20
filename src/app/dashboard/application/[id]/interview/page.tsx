@@ -162,10 +162,8 @@ export default function InterviewPage() {
             });
         }, 1000);
 
-        // Navigate to interview results page after a short delay
-        setTimeout(() => {
-            router.push(`/dashboard/application/${id}/interview-result`);
-        }, 2000);
+        
+        
     };
 
     // Button click handler - calls component first, then parent

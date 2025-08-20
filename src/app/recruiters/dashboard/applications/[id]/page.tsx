@@ -878,7 +878,7 @@ export default function ApplicationDetailPage() {
                                 </CardHeader>
                                 <CardContent>
                                     <div className="text-center py-4">
-                                        <Button 
+                                        <Button
                                             className="w-full"
                                             onClick={() => router.push(`/recruiters/dashboard/applications/${applicationId}/interview-analysis`)}
                                         >

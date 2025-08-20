@@ -50,11 +50,11 @@ export function InterviewChatTab({ artifact, applicationDetails }: InterviewChat
     const conversationLog = useMemo(() => {
         return artifact?.conversation || artifact?.conversation_log || [];
     }, [artifact?.conversation, artifact?.conversation_log]);
-    
+
     // Process conversation into structured messages - memoized to prevent infinite loops
     const processedMessages = useMemo((): ChatMessage[] => {
         if (!conversationLog || conversationLog.length === 0) return [];
-        
+
         return conversationLog.map((item: any, index: number) => {
             if (typeof item === 'string') {
                 // Handle simple string format
@@ -190,7 +190,7 @@ export function InterviewChatTab({ artifact, applicationDetails }: InterviewChat
 
         // Apply search filter
         if (searchQuery.trim()) {
-            filtered = filtered.filter(msg => 
+            filtered = filtered.filter(msg =>
                 msg.content.toLowerCase().includes(searchQuery.toLowerCase())
             );
         }
@@ -309,7 +309,7 @@ export function InterviewChatTab({ artifact, applicationDetails }: InterviewChat
                                 />
                             </div>
                         </div>
-                        <select 
+                        <select
                             value={filterType}
                             onChange={(e) => setFilterType(e.target.value)}
                             className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -344,7 +344,7 @@ export function InterviewChatTab({ artifact, applicationDetails }: InterviewChat
                                             </span>
                                         </div>
                                         <p className="text-gray-800 leading-relaxed">{message.content}</p>
-                                        
+
                                         {/* Message Metadata */}
                                         <div className="flex items-center gap-4 mt-3 pt-3 border-t border-gray-200">
                                             {message.metadata?.questionType && (

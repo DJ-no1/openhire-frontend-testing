@@ -261,9 +261,9 @@ export default function InterviewAnalysisPage() {
                     started_at: artifact.timestamp,
                     completed_at: artifact.timestamp,
                     duration_minutes: 30, // Default value
-                    total_questions: Array.isArray(artifact.conversation) ? 
+                    total_questions: Array.isArray(artifact.conversation) ?
                         artifact.conversation.filter((msg: any) => msg.type === 'question' || msg.sender === 'ai').length : 0,
-                    answered_questions: Array.isArray(artifact.conversation) ? 
+                    answered_questions: Array.isArray(artifact.conversation) ?
                         artifact.conversation.filter((msg: any) => msg.type === 'answer' || msg.sender === 'human').length : 0,
                     performance_metrics: {}
                 };
@@ -509,11 +509,11 @@ export default function InterviewAnalysisPage() {
                         </TabsList>
 
                         <TabsContent value="resume">
-                            <ErrorBoundary 
+                            <ErrorBoundary
                                 fallbackMessage="Unable to load resume analysis. The resume data may be corrupted or unavailable."
                                 onRetry={fetchInterviewData}
                             >
-                                <ResumeBreakdownTab 
+                                <ResumeBreakdownTab
                                     artifact={selectedArtifact}
                                     applicationDetails={applicationDetails}
                                 />
@@ -522,11 +522,11 @@ export default function InterviewAnalysisPage() {
 
                         <TabsContent value="chat">
                             {selectedArtifact ? (
-                                <ErrorBoundary 
+                                <ErrorBoundary
                                     fallbackMessage="Unable to load interview chat. The conversation data may be corrupted."
                                     onRetry={fetchInterviewData}
                                 >
-                                    <InterviewChatTab 
+                                    <InterviewChatTab
                                         artifact={selectedArtifact}
                                         applicationDetails={applicationDetails}
                                     />
@@ -540,7 +540,7 @@ export default function InterviewAnalysisPage() {
                                                 No Interview Chat Available
                                             </h3>
                                             <p className="text-gray-600 mb-4">
-                                                The candidate has not completed the interview yet. 
+                                                The candidate has not completed the interview yet.
                                                 Interview chat will be available once the candidate finishes the interview process.
                                             </p>
                                             <Badge variant="secondary" className="text-sm">
@@ -554,11 +554,11 @@ export default function InterviewAnalysisPage() {
 
                         <TabsContent value="score">
                             {selectedArtifact ? (
-                                <ErrorBoundary 
+                                <ErrorBoundary
                                     fallbackMessage="Unable to load score analysis. The scoring data may be incomplete."
                                     onRetry={fetchInterviewData}
                                 >
-                                    <ScoreAnalysisTab 
+                                    <ScoreAnalysisTab
                                         artifact={selectedArtifact}
                                         applicationDetails={applicationDetails}
                                     />
@@ -586,11 +586,11 @@ export default function InterviewAnalysisPage() {
 
                         <TabsContent value="image">
                             {selectedArtifact ? (
-                                <ErrorBoundary 
+                                <ErrorBoundary
                                     fallbackMessage="Unable to load interview images. The image data may be corrupted or unavailable."
                                     onRetry={fetchInterviewData}
                                 >
-                                    <InterviewImagesTab 
+                                    <InterviewImagesTab
                                         artifact={selectedArtifact}
                                         applicationDetails={applicationDetails}
                                     />
@@ -604,7 +604,7 @@ export default function InterviewAnalysisPage() {
                                                 No Interview Images Available
                                             </h3>
                                             <p className="text-gray-600 mb-4">
-                                                Interview images and captures will appear here once the candidate 
+                                                Interview images and captures will appear here once the candidate
                                                 completes their video interview session.
                                             </p>
                                             <Badge variant="secondary" className="text-sm">
@@ -617,11 +617,11 @@ export default function InterviewAnalysisPage() {
                         </TabsContent>
 
                         <TabsContent value="action">
-                            <ErrorBoundary 
+                            <ErrorBoundary
                                 fallbackMessage="Unable to load recruiter actions. Some functionality may be limited."
                                 onRetry={fetchInterviewData}
                             >
-                                <RecruiterActionsTab 
+                                <RecruiterActionsTab
                                     artifact={selectedArtifact}
                                     applicationDetails={applicationDetails}
                                     applicationId={applicationId}
