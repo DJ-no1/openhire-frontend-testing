@@ -145,6 +145,14 @@ export default function JobEditModal({ job, isOpen, onClose, onJobUpdated }: Job
     // Initialize form with job data when modal opens
     useEffect(() => {
         if (job && isOpen) {
+            // Handle description - if it's a JobDescription object, extract requirements
+            let descriptionText = '';
+            if (typeof job.description === 'object' && job.description !== null) {
+                descriptionText = (job.description as any).requirements?.join('\n') || '';
+            } else if (typeof job.description === 'string') {
+                descriptionText = job.description;
+            }
+
             setForm({
                 title: job.title,
                 company: job.company,
@@ -152,7 +160,7 @@ export default function JobEditModal({ job, isOpen, onClose, onJobUpdated }: Job
                 salary: job.salary || '',
                 expiry: job.end_date,
                 duration: job.interview_duration,
-                description: job.description,
+                description: descriptionText,
             });
             setSkills(job.skills);
             setJobStatus(job.status === 'active');
@@ -187,14 +195,21 @@ export default function JobEditModal({ job, isOpen, onClose, onJobUpdated }: Job
         const jobData = {
             recruiter_id: user.id,
             title: form.title,
-            company: form.company,
+            company_name: form.company, // Changed from 'company' to match API expectation
             location: form.location,
-            description: form.description,
+            description: {
+                requirements: form.description.split('\n').filter(line => line.trim()).map(line => line.trim()),
+                responsibilities: ['Job responsibilities will be discussed during the interview process'],
+                benefits: ['Competitive benefits package'],
+                experience: 'As specified in the job requirements',
+                industry: 'Technology',
+                resume_threshold: 'Medium'
+            }, // Convert string to JobDescription object
             salary: form.salary,
             skills: skills.join(', '),
             job_type: 'full-time',
             end_date: form.expiry,
-            interview_duration: form.duration,
+            interview_duration: parseInt(form.duration.replace(/\D/g, '')) || 30, // Extract number from duration string
             status: jobStatus ? 'active' as const : 'inactive' as const
         };
 

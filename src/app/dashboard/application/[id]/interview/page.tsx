@@ -8,6 +8,9 @@ import { toast } from "sonner";
 import VideoFeed from "@/components/video-feed";
 import VideoInterviewSystem, { VideoInterviewSystemRef } from "@/components/video-interview-system";
 import { supabase } from "@/lib/supabaseClient";
+import { useAuth } from '@/contexts/AuthContext';
+import { useAuthLoading } from '@/hooks/useAuthLoading';
+import { InterviewSkeleton } from '@/components/ui/page-skeleton';
 
 type InterviewStatus = "disconnected" | "connecting" | "connected" | "paused" | "completed";
 
@@ -47,6 +50,12 @@ export default function InterviewPage() {
     const { id } = useParams();
     const router = useRouter();
     const searchParams = useSearchParams();
+    const { user } = useAuth();
+    const { isLoading: authLoading } = useAuthLoading();
+
+    if (authLoading) {
+        return <InterviewSkeleton />;
+    }
 
     // Extract device configuration from URL parameters
     const selectedVideoDevice = searchParams.get('videoDevice');
@@ -59,12 +68,6 @@ export default function InterviewPage() {
     // Log the received device configuration
     useEffect(() => {
         if (selectedVideoDevice || selectedAudioInputDevice) {
-            console.log('📹 Interview starting with selected devices:', {
-                video: { id: selectedVideoDevice, label: videoDeviceLabel },
-                audioInput: { id: selectedAudioInputDevice, label: audioInputDeviceLabel },
-                audioOutput: { id: selectedAudioOutputDevice, label: audioOutputDeviceLabel }
-            });
-
             // Show toast with selected devices
             const deviceMessages = [];
             if (videoDeviceLabel) deviceMessages.push(`📹 ${videoDeviceLabel}`);
@@ -90,60 +93,62 @@ export default function InterviewPage() {
     // Use application ID as interview ID
     const applicationId = id as string;
 
-    // Debug: Monitor captured images state changes
+    // Monitor captured images state changes for debugging
     useEffect(() => {
-        console.log('🔍 Captured images state changed:', {
-            count: capturedImages.length,
-            images: capturedImages
-        });
+        // Only log in development mode or when specifically debugging
+        if (process.env.NODE_ENV === 'development') {
+            console.log('Captured images count:', capturedImages.length);
+        }
     }, [capturedImages]);
 
-    // Debug: Periodic state monitor during interview
+    // Periodic state monitor during interview (development only)
     useEffect(() => {
-        if (interviewStatus === "connected") {
+        if (process.env.NODE_ENV === 'development' && interviewStatus === "connected") {
             const monitor = setInterval(() => {
-                console.log('⏰ Periodic state check - captured images:', {
-                    count: capturedImages.length,
-                    images: capturedImages,
-                    status: interviewStatus
-                });
-            }, 15000); // Every 15 seconds
+                console.log('Interview status check - images count:', capturedImages.length);
+            }, 30000); // Every 30 seconds, less frequent
 
             return () => clearInterval(monitor);
         }
     }, [interviewStatus, capturedImages]);
 
-    // Debug: Manual trigger for testing image storage
+    // Debug function for testing image storage (development only)
     const debugStoreImages = () => {
-        console.log('🧪 DEBUG: Manual store images trigger clicked');
-        console.log('🧪 DEBUG: Current capturedImages state:', capturedImages);
-        console.log('🧪 DEBUG: Current capturedImages length:', capturedImages.length);
+        if (process.env.NODE_ENV === 'development') {
+            console.log('DEBUG: Manual store images trigger - count:', capturedImages.length);
 
-        if (capturedImages.length === 0) {
-            console.log('🧪 DEBUG: No images in state, using test images');
-            // For testing, use some test URLs if no real images
-            const testImages = ['https://via.placeholder.com/640x480/0000FF/FFFFFF?text=Test+Image+1'];
-            storeImagesInInterviewArtifact(testImages);
-        } else {
-            storeImagesInInterviewArtifact(capturedImages);
+            if (capturedImages.length === 0) {
+                // For testing, use some test URLs if no real images
+                const testImages = ['https://via.placeholder.com/640x480/0000FF/FFFFFF?text=Test+Image+1'];
+                storeImagesInInterviewArtifact(testImages);
+            } else {
+                storeImagesInInterviewArtifact(capturedImages);
+            }
         }
     };
 
     // Handle status changes from AIInterview component
     const handleStatusChange = async (status: InterviewStatus) => {
         setInterviewStatus(status);
-        console.log('📊 Interview status changed to:', status);
+        // Only log in development mode
+        if (process.env.NODE_ENV === 'development') {
+            console.log('Interview status changed to:', status);
+        }
     };
 
     // Handle end interview action - ONLY handles navigation and cleanup
     const handleEndInterview = async () => {
         // Prevent multiple calls
         if (isEndingInProgress) {
-            console.log('🛑 End interview already in progress, ignoring...');
+            if (process.env.NODE_ENV === 'development') {
+                console.log('End interview already in progress, ignoring...');
+            }
             return;
         }
 
-        console.log('🛑 Parent handling end interview - navigation and cleanup only');
+        if (process.env.NODE_ENV === 'development') {
+            console.log('Parent handling end interview - navigation and cleanup only');
+        }
 
         // Set flags to prevent multiple calls and beforeunload popup
         setIsEndingInProgress(true);
@@ -156,14 +161,14 @@ export default function InterviewPage() {
         // Store captured images after ending
         setTimeout(() => {
             setCapturedImages(currentImages => {
-                console.log('📸 Storing images on user end:', currentImages.length);
+                if (process.env.NODE_ENV === 'development') {
+                    console.log('Storing images on user end:', currentImages.length);
+                }
                 storeImagesInInterviewArtifact(currentImages);
                 return currentImages;
             });
         }, 1000);
 
-        
-        
     };
 
     // Button click handler - calls component first, then parent
@@ -179,11 +184,13 @@ export default function InterviewPage() {
 
     // Handle interview completion
     const handleInterviewComplete = async (finalAssessment: FinalAssessment, conversation: any[]) => {
-        console.log('🎉 Interview completed! Backend should handle data persistence.');
-        console.log('📊 Final Assessment:', finalAssessment);
-        console.log('💬 Conversation:', conversation.length, 'messages');
-        console.log('📸 Current captured images count:', capturedImages.length);
-        console.log('📸 Current captured images array:', capturedImages);
+        // Only log in development mode
+        if (process.env.NODE_ENV === 'development') {
+            console.log('Interview completed! Backend should handle data persistence.');
+            console.log('Final Assessment received');
+            console.log('Conversation messages:', conversation.length);
+            console.log('Captured images count:', capturedImages.length);
+        }
 
         // Mark interview as completed
         setInterviewStatus("completed");
@@ -195,8 +202,9 @@ export default function InterviewPage() {
 
         // Get the most current state by using a callback
         setCapturedImages(currentImages => {
-            console.log('📸 Final captured images count after wait:', currentImages.length);
-            console.log('📸 Final captured images array after wait:', currentImages);
+            if (process.env.NODE_ENV === 'development') {
+                console.log('Final captured images count after wait:', currentImages.length);
+            }
 
             // Store captured images using the simplified approach
             storeImagesInInterviewArtifact(currentImages);
@@ -225,15 +233,15 @@ export default function InterviewPage() {
 
     // Handle image capture - receives blob from VideoFeed and handles all storage
     const handleImageCaptured = useCallback(async (imageBlob: Blob) => {
-        console.log('📸 Image blob received from VideoFeed, size:', imageBlob.size, 'bytes');
+        if (process.env.NODE_ENV === 'development') {
+            console.log('Image blob received, size:', imageBlob.size, 'bytes');
+        }
 
         try {
             // Generate unique filename
             const timestamp = Date.now();
             const filename = `interview-${applicationId}-${timestamp}.jpg`;
             const filePath = `interviews/${applicationId}/${filename}`;
-
-            console.log('📤 Uploading to Supabase storage:', filePath);
 
             // Upload to Supabase storage
             const { data: uploadData, error: uploadError } = await supabase.storage
@@ -244,7 +252,7 @@ export default function InterviewPage() {
                 });
 
             if (uploadError) {
-                console.error('❌ Upload error:', uploadError);
+                console.error('Upload error:', uploadError);
                 return;
             }
 
@@ -253,49 +261,59 @@ export default function InterviewPage() {
                 .from('pictures')
                 .getPublicUrl(filePath);
 
-            console.log('✅ Image uploaded successfully:', publicUrl);
+            if (process.env.NODE_ENV === 'development') {
+                console.log('Image uploaded successfully:', publicUrl);
+            }
 
             // Add to captured images state
             setCapturedImages(prev => {
                 const newImages = [...prev, publicUrl];
-                console.log('📷 Updated captured images array:', {
-                    previousCount: prev.length,
-                    newCount: newImages.length,
-                    newImageUrl: publicUrl,
-                    totalImages: newImages.length
-                });
+                if (process.env.NODE_ENV === 'development') {
+                    console.log('Updated captured images count:', newImages.length);
+                }
                 return newImages;
             });
 
         } catch (error) {
-            console.error('❌ Error handling image capture:', error);
+            console.error('Error handling image capture:', error);
         }
     }, []); // Empty dependencies to prevent re-creation
 
     // Handle video ready state
     const handleVideoReady = (isReady: boolean) => {
         setIsVideoReady(isReady);
-        console.log('📹 Video feed ready:', isReady);
+        if (process.env.NODE_ENV === 'development') {
+            console.log('Video feed ready:', isReady);
+        }
     };
 
     // Handle AI question received for video overlay
     const handleQuestionReceived = (question: string, isAISpeaking: boolean) => {
         setAiSpeakingState(isAISpeaking);
-        console.log('🎤 AI speaking state:', isAISpeaking);
+        // Only log in development mode if needed for debugging
+        if (process.env.NODE_ENV === 'development' && isAISpeaking !== aiSpeakingState) {
+            console.log('AI speaking state changed:', isAISpeaking);
+        }
     };
 
     // Simplified approach: Store images directly in interview_artifacts table
     const storeImagesInInterviewArtifact = async (imagesToStore: string[]) => {
-        console.log(`🎯 SIMPLIFIED APPROACH: Called with ${imagesToStore.length} images`);
+        if (process.env.NODE_ENV === 'development') {
+            console.log(`SIMPLIFIED APPROACH: Called with ${imagesToStore.length} images`);
+        }
 
         if (imagesToStore.length === 0) {
-            console.log('📷 No images to store - array is empty');
+            if (process.env.NODE_ENV === 'development') {
+                console.log('No images to store - array is empty');
+            }
             return;
         }
 
         try {
-            console.log('📋 Step 1: Getting interview_artifact_id from applications table...');
-            console.log('📋 Application ID:', applicationId);
+            if (process.env.NODE_ENV === 'development') {
+                console.log('Step 1: Getting interview_artifact_id from applications table...');
+                console.log('Application ID:', applicationId);
+            }
 
             // Step 1: Get interview_artifact_id from applications table (backend puts it there after interview)
             const { data: applicationData, error: applicationError } = await supabase
@@ -304,26 +322,30 @@ export default function InterviewPage() {
                 .eq('id', applicationId)
                 .single();
 
-            console.log('📋 Applications query result:', { data: applicationData, error: applicationError });
+            if (process.env.NODE_ENV === 'development') {
+                console.log('Applications query result:', { data: applicationData, error: applicationError });
+            }
 
             if (applicationError) {
-                console.error('❌ Database error fetching application:', applicationError);
-                console.log('⏳ Backend might still be processing, trying again in 5 seconds...');
+                console.error('Database error fetching application:', applicationError);
+                if (process.env.NODE_ENV === 'development') {
+                    console.log('Backend might still be processing, trying again in 5 seconds...');
+                }
 
                 // Try once more after a delay (give backend more time)
                 setTimeout(() => {
-                    console.log('🔄 Retrying storeImagesInInterviewArtifact...');
                     storeImagesInInterviewArtifact(imagesToStore);
                 }, 5000);
                 return;
             }
 
             if (!applicationData?.interview_artifact_id) {
-                console.log('⏳ interview_artifact_id not found yet, backend still processing...');
-                console.log('⏳ Retrying in 5 seconds...');
+                if (process.env.NODE_ENV === 'development') {
+                    console.log('interview_artifact_id not found yet, backend still processing...');
+                    console.log('Retrying in 5 seconds...');
+                }
 
                 setTimeout(() => {
-                    console.log('🔄 Retrying storeImagesInInterviewArtifact...');
                     storeImagesInInterviewArtifact(imagesToStore);
                 }, 5000);
                 return;
@@ -331,17 +353,23 @@ export default function InterviewPage() {
 
             // Parse the comma-separated artifact IDs and get the latest one
             const artifactIdsString = applicationData.interview_artifact_id.trim();
-            console.log('📋 Raw interview_artifact_id string:', artifactIdsString);
+            if (process.env.NODE_ENV === 'development') {
+                console.log('Raw interview_artifact_id string:', artifactIdsString);
+            }
 
             const artifactIds = artifactIdsString.split(',').map((id: string) => id.trim());
             const latestArtifactId = artifactIds[artifactIds.length - 1]; // Get the last/latest one
 
-            console.log('📋 All artifact IDs:', artifactIds);
-            console.log('✅ Using latest artifact ID:', latestArtifactId);
+            if (process.env.NODE_ENV === 'development') {
+                console.log('All artifact IDs:', artifactIds);
+                console.log('Using latest artifact ID:', latestArtifactId);
+            }
 
             // Step 2: Update interview_artifacts table with image URLs
             const imageUrls = imagesToStore.join(',');
-            console.log('📦 Step 2: Updating interview_artifacts with image URLs:', imageUrls);
+            if (process.env.NODE_ENV === 'development') {
+                console.log('Step 2: Updating interview_artifacts with image URLs');
+            }
 
             const { data: updateData, error: updateError } = await supabase
                 .from('interview_artifacts')
@@ -350,19 +378,16 @@ export default function InterviewPage() {
                 .select();
 
             if (updateError) {
-                console.error('❌ Error updating interview_artifacts with images:', updateError);
-                console.error('❌ Update error details:', {
-                    message: updateError.message,
-                    details: updateError.details,
-                    code: updateError.code
-                });
+                console.error('Error updating interview_artifacts with images:', updateError);
             } else {
-                console.log('✅ SUCCESS: Images stored in interview_artifacts!', updateData);
+                if (process.env.NODE_ENV === 'development') {
+                    console.log('SUCCESS: Images stored in interview_artifacts!', updateData);
+                }
                 toast.success(`${imagesToStore.length} images saved to interview record!`);
             }
 
         } catch (error) {
-            console.error('❌ Exception in storeImagesInInterviewArtifact:', error);
+            console.error('Exception in storeImagesInInterviewArtifact:', error);
         }
     };
 
@@ -371,20 +396,25 @@ export default function InterviewPage() {
         // Use passed images or current state, but get fresh state if none passed
         const imageList = imagesToStore || capturedImages;
 
-        console.log('📤 storeInterviewImagesWithProperArtifactId called with:', {
-            passedImages: imagesToStore ? imagesToStore.length : 'none',
-            currentStateImages: capturedImages.length,
-            imageListToUse: imageList.length,
-            imageList: imageList
-        });
+        if (process.env.NODE_ENV === 'development') {
+            console.log('storeInterviewImagesWithProperArtifactId called with:', {
+                passedImages: imagesToStore ? imagesToStore.length : 'none',
+                currentStateImages: capturedImages.length,
+                imageListToUse: imageList.length
+            });
+        }
 
         if (imageList.length === 0) {
-            console.log('📷 No images to store');
+            if (process.env.NODE_ENV === 'development') {
+                console.log('No images to store');
+            }
             return;
         }
 
         try {
-            console.log(`📤 Storing ${imageList.length} interview images with proper artifact ID lookup`);
+            if (process.env.NODE_ENV === 'development') {
+                console.log(`Storing ${imageList.length} interview images with proper artifact ID lookup`);
+            }
 
             // Follow correct DB relationship: applications → interviews → interview_artifacts
             // Step 1: Get the latest interview for this application
@@ -397,13 +427,15 @@ export default function InterviewPage() {
                 .maybeSingle();
 
             if (interviewError) {
-                console.error('❌ Error fetching interview:', interviewError);
+                console.error('Error fetching interview:', interviewError);
                 await storeInterviewImages(imageList);
                 return;
             }
 
             if (!interviews?.id) {
-                console.warn('⚠️ No interview found for application, using fallback storage');
+                if (process.env.NODE_ENV === 'development') {
+                    console.warn('No interview found for application, using fallback storage');
+                }
                 await storeInterviewImages(imageList);
                 return;
             }
@@ -418,19 +450,23 @@ export default function InterviewPage() {
                 .maybeSingle();
 
             if (fetchError) {
-                console.error('❌ Error fetching interview artifact:', fetchError);
+                console.error('Error fetching interview artifact:', fetchError);
                 await storeInterviewImages(imageList);
                 return;
             }
 
             if (!interviewArtifacts?.id) {
-                console.warn('⚠️ No interview artifact found, using fallback storage');
+                if (process.env.NODE_ENV === 'development') {
+                    console.warn('No interview artifact found, using fallback storage');
+                }
                 await storeInterviewImages(imageList);
                 return;
             }
 
             const artifactId = interviewArtifacts.id;
-            console.log('✅ Found interview artifact ID:', artifactId);
+            if (process.env.NODE_ENV === 'development') {
+                console.log('Found interview artifact ID:', artifactId);
+            }
 
             // Store images with proper artifact relationship
             const imageData = imageList.map((imageUrl, index) => ({
@@ -447,15 +483,19 @@ export default function InterviewPage() {
                 .insert(imageData);
 
             if (insertError) {
-                console.error('❌ Error storing interview images with artifact ID:', insertError);
+                console.error('Error storing interview images with artifact ID:', insertError);
                 // Try fallback
                 await storeInterviewImages(imageList);
             } else {
-                console.log('✅ Interview images stored successfully with artifact ID');
+                if (process.env.NODE_ENV === 'development') {
+                    console.log('Interview images stored successfully with artifact ID');
+                }
 
                 // Update interview_artifacts table with image URLs
                 const imageUrls = imageList.join(',');
-                console.log('📦 Updating interview_artifacts with image URLs:', imageUrls);
+                if (process.env.NODE_ENV === 'development') {
+                    console.log('Updating interview_artifacts with image URLs');
+                }
 
                 const { data: updateData, error: updateError } = await supabase
                     .from('interview_artifacts')
@@ -467,14 +507,14 @@ export default function InterviewPage() {
                     .select();
 
                 if (updateError) {
-                    console.error('❌ Error updating interview_artifacts with image URLs:', updateError);
-                } else {
-                    console.log('✅ Interview artifact updated with image URLs:', updateData);
+                    console.error('Error updating interview_artifacts with image URLs:', updateError);
+                } else if (process.env.NODE_ENV === 'development') {
+                    console.log('Interview artifact updated with image URLs:', updateData);
                 }
             }
 
         } catch (error) {
-            console.error('❌ Exception storing interview images with artifact ID:', error);
+            console.error('Exception storing interview images with artifact ID:', error);
             // Fallback to basic storage
             await storeInterviewImages(imageList);
         }
@@ -486,12 +526,16 @@ export default function InterviewPage() {
         const imageList = imagesToStore || capturedImages;
 
         if (imageList.length === 0) {
-            console.log('📷 No images to store');
+            if (process.env.NODE_ENV === 'development') {
+                console.log('No images to store');
+            }
             return;
         }
 
         try {
-            console.log(`📤 Attempting to store ${imageList.length} interview images for application: ${applicationId}`);
+            if (process.env.NODE_ENV === 'development') {
+                console.log(`Attempting to store ${imageList.length} interview images for application: ${applicationId}`);
+            }
 
             // Simply try to store images in a basic interview_images table
             // The backend should handle the complex interview artifact logic
@@ -507,15 +551,17 @@ export default function InterviewPage() {
                 .insert(imageData);
 
             if (insertError) {
-                console.error('❌ Error storing interview images:', insertError);
+                console.error('Error storing interview images:', insertError);
                 // Don't show error to user - backend should handle this
-                console.log('⏳ Backend will process interview data');
-            } else {
-                console.log('✅ Interview images stored successfully');
+                if (process.env.NODE_ENV === 'development') {
+                    console.log('Backend will process interview data');
+                }
+            } else if (process.env.NODE_ENV === 'development') {
+                console.log('Interview images stored successfully');
             }
 
         } catch (error) {
-            console.error('❌ Exception storing interview images:', error);
+            console.error('Exception storing interview images:', error);
             // Don't show error to user - this is not critical for the interview flow
         }
     };
@@ -582,15 +628,17 @@ export default function InterviewPage() {
                                 {isEndingInProgress ? "Ending..." : "End Interview"}
                             </Button>
 
-                            {/* Debug button */}
-                            <Button
-                                onClick={debugStoreImages}
-                                variant="secondary"
-                                size="sm"
-                                className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg backdrop-blur-sm bg-opacity-90 border-0"
-                            >
-                                🧪 Test Store Images
-                            </Button>
+                            {/* Debug button - only show in development */}
+                            {process.env.NODE_ENV === 'development' && (
+                                <Button
+                                    onClick={debugStoreImages}
+                                    variant="secondary"
+                                    size="sm"
+                                    className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg backdrop-blur-sm bg-opacity-90 border-0"
+                                >
+                                    🧪 Test Store Images
+                                </Button>
+                            )}
                         </div>
                     )}
 

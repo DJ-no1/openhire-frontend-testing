@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ResumeUploadAnalyzer } from "@/components/resume-upload-analyzer";
 import { type Job as JobType } from "@/lib/api";
 import { getJobUrl } from "@/lib/job-service";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/contexts/AuthContext";
 
 type Job = {
     id: string;

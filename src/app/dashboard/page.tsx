@@ -5,7 +5,9 @@ import { AppNavigation } from '@/components/app-navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from '@/contexts/AuthContext';
+import { useAuthLoading } from '@/hooks/useAuthLoading';
+import { DashboardSkeleton } from '@/components/ui/page-skeleton';
 import {
     Search,
     FileText,
@@ -22,6 +24,11 @@ import {
 
 export default function CandidateDashboardPage() {
     const { user } = useAuth();
+    const { isLoading } = useAuthLoading();
+
+    if (isLoading) {
+        return <DashboardSkeleton />;
+    }
 
     const stats = [
         {
@@ -118,14 +125,14 @@ export default function CandidateDashboardPage() {
 
     return (
         <ProtectedRoute requiredRole="candidate">
-        
+
 
             <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     {/* Welcome Section */}
                     <div className="mb-8">
                         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                            Welcome back, {user?.name || 'Job Seeker'}!
+                            Welcome back, {user?.user_metadata?.name || user?.email?.split('@')[0] || 'Job Seeker'}!
                         </h1>
                         <p className="text-gray-600 dark:text-gray-400 mt-2">
                             Track your applications and discover new opportunities.

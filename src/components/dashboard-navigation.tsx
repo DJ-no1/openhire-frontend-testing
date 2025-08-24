@@ -1,5 +1,5 @@
 "use client";
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -176,7 +176,7 @@ export function DashboardNavigation() {
                                 >
                                     <Avatar className="h-10 w-10">
                                         <AvatarFallback className="bg-primary/10 text-primary">
-                                            {getUserInitials(user?.name)}
+                                            {getUserInitials(user?.app_metadata?.name || user?.email)}
                                         </AvatarFallback>
                                     </Avatar>
                                 </Button>
@@ -184,7 +184,7 @@ export function DashboardNavigation() {
                             <DropdownMenuContent className="w-56" align="end" forceMount>
                                 <div className="flex flex-col space-y-1 p-2">
                                     <p className="text-sm font-medium leading-none">
-                                        {user?.name || 'User'}
+                                        {user?.app_metadata?.name || user?.email?.split('@')[0] || 'User'}
                                     </p>
                                     <p className="text-xs leading-none text-muted-foreground">
                                         {user?.email}

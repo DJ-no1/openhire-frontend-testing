@@ -5,7 +5,9 @@ import { AppNavigation } from '@/components/app-navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CreateJobModal } from '@/components/create-job-modal';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from '@/contexts/AuthContext';
+import { useAuthLoading } from '@/hooks/useAuthLoading';
+import { DashboardSkeleton } from '@/components/ui/page-skeleton';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import {
@@ -43,8 +45,13 @@ const navigationItems = [
 
 export default function RecruiterDashboardPage() {
     const { user } = useAuth();
+    const { isLoading } = useAuthLoading();
     const router = useRouter();
     const [createJobModalOpen, setCreateJobModalOpen] = useState(false);
+
+    if (isLoading) {
+        return <DashboardSkeleton />;
+    }
 
     const handleJobCreated = () => {
         // Refresh the page or update data when a job is created
@@ -122,7 +129,7 @@ export default function RecruiterDashboardPage() {
                     {/* Welcome Section */}
                     <div className="mb-8">
                         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                            Welcome back, {user?.name || 'Recruiter'}!
+                            Welcome back, {user?.user_metadata?.name || user?.email?.split('@')[0] || 'Recruiter'}!
                         </h1>
                         <p className="text-gray-600 dark:text-gray-400 mt-2">
                             Here's what's happening with your recruitment today.

@@ -23,7 +23,7 @@ import {
     ExternalLink
 } from "lucide-react";
 import { jobService, Job } from "@/lib/job-service";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/contexts/AuthContext";
 import ReactMarkdown from "react-markdown";
 import { ResumeUploadAnalyzer } from "@/components/resume-upload-analyzer";
 import { toast } from "sonner";

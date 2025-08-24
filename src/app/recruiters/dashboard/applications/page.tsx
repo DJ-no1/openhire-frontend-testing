@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from '@/contexts/AuthContext';
 import { DatabaseService, type DatabaseApplication, type DatabaseUserResume, type DatabaseJob, type DatabaseUser } from '@/lib/database';
 import { jobService } from '@/lib/job-service';
 import { toast } from 'sonner';

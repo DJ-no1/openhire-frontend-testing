@@ -7,7 +7,7 @@ import { AppNavigation } from '@/components/app-navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from '@/contexts/AuthContext';
 import { DatabaseService, type DatabaseApplication, type DatabaseUserResume, type DatabaseJob, type DatabaseUser } from '@/lib/database';
 import { toast } from 'sonner';
 import {

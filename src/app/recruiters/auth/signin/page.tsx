@@ -6,7 +6,8 @@ import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { signIn, resetPassword } from '@/lib/auth';
+import { useAuth } from '@/contexts/AuthContext';
+import { createClient } from '@/lib/supabase/client';
 import { Eye, EyeOff, Mail, Lock, Building } from 'lucide-react';
 
 export default function RecruiterSigninPage() {
@@ -22,6 +23,8 @@ export default function RecruiterSigninPage() {
     const [showForgotPassword, setShowForgotPassword] = useState(false);
 
     const router = useRouter();
+    const { signIn: authSignIn } = useAuth();
+    const supabase = createClient();
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -55,20 +58,11 @@ export default function RecruiterSigninPage() {
         setIsLoading(true);
 
         try {
-            const result = await signIn({
-                email: formData.email,
-                password: formData.password,
-            });
+            const result = await authSignIn(formData.email, formData.password);
 
             if (result.error) {
                 setError(result.error.message);
-            } else if (result.user) {
-                // Check if user is a recruiter
-                if (result.user.role !== 'recruiter') {
-                    setError('This account is not registered as a recruiter. Please use the candidate login.');
-                    return;
-                }
-
+            } else {
                 setSuccess('Sign in successful! Redirecting...');
                 // Redirect to recruiter dashboard
                 setTimeout(() => {
@@ -99,10 +93,12 @@ export default function RecruiterSigninPage() {
         setError('');
 
         try {
-            const result = await resetPassword(formData.email);
+            const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
+                redirectTo: `${window.location.origin}/recruiters/auth/reset-password`,
+            });
 
-            if (result.error) {
-                setError(result.error.message);
+            if (error) {
+                setError(error.message);
             } else {
                 setSuccess('Password reset email sent! Please check your inbox.');
                 setShowForgotPassword(false);

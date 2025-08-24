@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -43,7 +43,7 @@ export function AppNavigation({ items, title, subtitle }: AppNavigationProps) {
 
     const handleSignOut = async () => {
         await signOut();
-        router.push(user?.role === 'recruiter' ? '/recruiters/auth/signin' : '/auth/signin');
+        router.push('/auth/signin');
     };
 
     const getUserInitials = (name?: string) => {
@@ -126,15 +126,15 @@ export function AppNavigation({ items, title, subtitle }: AppNavigationProps) {
                                         <Button variant="ghost" className="flex items-center space-x-2">
                                             <Avatar className="h-8 w-8">
                                                 <AvatarFallback className="bg-primary/10 text-primary">
-                                                    {getUserInitials(user?.name)}
+                                                    {getUserInitials(user?.user_metadata?.name || user?.email)}
                                                 </AvatarFallback>
                                             </Avatar>
                                             <div className="text-left">
                                                 <p className="text-sm font-medium text-gray-900 dark:text-white">
-                                                    {user?.name || 'User'}
+                                                    {user?.user_metadata?.name || user?.email?.split('@')[0] || 'User'}
                                                 </p>
                                                 <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
-                                                    {user?.role}
+                                                    {user?.user_metadata?.role || 'User'}
                                                 </p>
                                             </div>
                                         </Button>
@@ -198,15 +198,15 @@ export function AppNavigation({ items, title, subtitle }: AppNavigationProps) {
                                         <div className="flex items-center px-3 py-2">
                                             <Avatar className="h-10 w-10">
                                                 <AvatarFallback className="bg-primary/10 text-primary">
-                                                    {getUserInitials(user?.name)}
+                                                    {getUserInitials(user?.user_metadata?.name || user?.email)}
                                                 </AvatarFallback>
                                             </Avatar>
                                             <div className="ml-3">
                                                 <p className="text-base font-medium text-gray-900 dark:text-white">
-                                                    {user?.name || 'User'}
+                                                    {user?.user_metadata?.name || user?.email?.split('@')[0] || 'User'}
                                                 </p>
                                                 <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">
-                                                    {user?.role}
+                                                    {user?.user_metadata?.role || 'User'}
                                                 </p>
                                             </div>
                                         </div>

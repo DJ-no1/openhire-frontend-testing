@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { ResumeUploadAnalyzer } from '@/components/resume-upload-analyzer';
 import { AppNavigation } from '@/components/app-navigation';
 import { ProtectedRoute } from '@/components/protected-route';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from '@/contexts/AuthContext';
 import { jobService, Job as JobType, getJobUrl } from '@/lib/job-service';
 import { toast } from 'sonner';
 import {

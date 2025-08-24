@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { signUp } from '@/lib/auth';
+import { useAuth } from '@/contexts/AuthContext';
 import { Eye, EyeOff, Mail, User, Lock, Building } from 'lucide-react';
 
 export default function RecruiterSignupPage() {
@@ -23,6 +23,7 @@ export default function RecruiterSignupPage() {
     const [success, setSuccess] = useState('');
 
     const router = useRouter();
+    const { signUp: authSignUp } = useAuth();
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -64,9 +65,7 @@ export default function RecruiterSignupPage() {
         setIsLoading(true);
 
         try {
-            const result = await signUp({
-                email: formData.email,
-                password: formData.password,
+            const result = await authSignUp(formData.email, formData.password, {
                 name: formData.name,
                 role: 'recruiter',
             });

@@ -32,7 +32,7 @@ import {
     ArrowLeft
 } from "lucide-react";
 import { jobService, Job, JobDescription, UpdateJobData } from "@/lib/job-service";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/contexts/AuthContext";
 import ReactMarkdown from "react-markdown";
 import { JobSkillSelector } from "@/components/job-skill-selector";
 import { JobDataExtractor } from "@/components/job-data-extractor";
@@ -57,7 +57,9 @@ export default function JobDetailPage() {
             requirements: [],
             responsibilities: [],
             benefits: [],
-            experience: ""
+            experience: "",
+            industry: "",
+            resume_threshold: ""
         },
         salary: "",
         skills: "",
