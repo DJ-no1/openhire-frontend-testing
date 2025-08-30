@@ -18,6 +18,8 @@ import {
   BarChart3,
   MessageSquare,
   Home,
+  Zap,
+  TestTube2,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -77,6 +79,29 @@ const data = {
         {
           title: "Analysis History",
           url: "/resume-review/history",
+        },
+      ],
+    },
+    {
+      title: "Testing & Development",
+      url: "/test",
+      icon: TestTube2,
+      items: [
+        {
+          title: "Async Resume Analysis",
+          url: "/test/async-resume-review",
+        },
+        {
+          title: "Legacy Resume Review",
+          url: "/test/resume-review",
+        },
+        {
+          title: "API Testing",
+          url: "/test/api",
+        },
+        {
+          title: "Component Testing",
+          url: "/test/components",
         },
       ],
     },

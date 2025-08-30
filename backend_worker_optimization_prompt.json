@@ -1,0 +1,176 @@
+{
+  "task": "Fix Heroku Single Worker Blocking Issue for Resume Analysis API",
+  "problem_description": {
+    "current_issue": "Single Heroku dyno (worker) blocking all requests during long-running resume analysis",
+    "symptoms": [
+      "H13 Connection closed without response errors after 30 seconds",
+      "Worker timeout (SIGABRT) killing processes",
+      "Subsequent requests fail while one analysis is running",
+      "Frontend receives 503 errors during peak processing"
+    ],
+    "root_cause": "Synchronous processing blocks the single worker thread",
+    "infrastructure_constraints": {
+      "heroku_plan": "Basic dyno",
+      "worker_count": 1,
+      "request_timeout": "30 seconds (hard limit)",
+      "memory_limit": "512MB",
+      "concurrent_requests": "Limited by single worker"
+    }
+  },
+  "current_architecture": {
+    "endpoint": "/review-resume",
+    "method": "POST",
+    "processing_flow": [
+      "Receive file upload",
+      "Extract text from PDF/document",
+      "Fetch job description from Supabase",
+      "Call LLM for main analysis (15-20 seconds)",
+      "Call LLM for dimension breakdown (10-15 seconds)",
+      "Merge and format results",
+      "Return JSON response"
+    ],
+    "total_processing_time": "25-35 seconds",
+    "blocking_operations": [
+      "LLM API calls",
+      "File processing",
+      "Database queries"
+    ]
+  },
+  "required_solution": {
+    "approach": "Implement asynchronous job processing with immediate response",
+    "new_endpoints": [
+      {
+        "endpoint": "/review-resume",
+        "method": "POST",
+        "purpose": "Submit resume for analysis",
+        "response_time": "<2 seconds",
+        "response": {
+          "job_id": "uuid",
+          "status": "pending",
+          "message": "Analysis queued successfully",
+          "estimated_completion": "30-60 seconds"
+        }
+      },
+      {
+        "endpoint": "/review-resume/status/{job_id}",
+        "method": "GET",
+        "purpose": "Check analysis progress",
+        "response_time": "<1 second",
+        "response": {
+          "job_id": "uuid",
+          "status": "pending|processing|completed|failed",
+          "progress": "0-100",
+          "result": "analysis_data (if completed)",
+          "error": "error_message (if failed)",
+          "created_at": "timestamp",
+          "updated_at": "timestamp"
+        }
+      }
+    ],
+    "background_processing": {
+      "implementation": "In-memory job queue with threading",
+      "alternatives": [
+        "Redis + Celery (requires Redis addon)",
+        "RQ (Redis Queue)",
+        "Threading with SQLite job store",
+        "asyncio with background tasks"
+      ],
+      "recommended": "Threading with in-memory queue (no additional dependencies)"
+    }
+  },
+  "implementation_requirements": {
+    "job_storage": {
+      "type": "In-memory dictionary or SQLite",
+      "fields": [
+        "job_id (UUID)",
+        "status (enum)",
+        "job_data (file, job_id)",
+        "result (JSON)",
+        "error (string)",
+        "created_at (datetime)",
+        "updated_at (datetime)",
+        "progress (integer 0-100)"
+      ]
+    },
+    "background_worker": {
+      "framework": "Python threading.Thread or concurrent.futures",
+      "queue_management": "queue.Queue or asyncio.Queue",
+      "error_handling": "Try-catch with status updates",
+      "cleanup": "Remove completed jobs after 1 hour"
+    },
+    "status_tracking": {
+      "pending": "Job submitted, waiting in queue",
+      "processing": "Currently analyzing resume",
+      "completed": "Analysis finished successfully",
+      "failed": "Error occurred during processing"
+    }
+  },
+  "code_structure": {
+    "new_files": [
+      "job_manager.py - Handle job lifecycle",
+      "background_processor.py - Process jobs in background",
+      "models/job.py - Job data models"
+    ],
+    "modified_files": [
+      "main.py - Add new endpoints",
+      "requirements.txt - Add threading dependencies if needed"
+    ]
+  },
+  "sample_implementation": {
+    "job_manager": {
+      "class": "JobManager",
+      "methods": [
+        "create_job(job_data) -> job_id",
+        "get_job_status(job_id) -> JobStatus",
+        "update_job_progress(job_id, progress)",
+        "complete_job(job_id, result)",
+        "fail_job(job_id, error)",
+        "cleanup_old_jobs()"
+      ]
+    },
+    "background_processor": {
+      "class": "ResumeAnalysisWorker",
+      "methods": [
+        "start_processing()",
+        "process_job(job_data)",
+        "update_progress(job_id, step)",
+        "handle_error(job_id, exception)"
+      ]
+    }
+  },
+  "testing_requirements": {
+    "endpoints_to_test": [
+      "POST /review-resume - Should return job_id immediately",
+      "GET /review-resume/status/{job_id} - Should track progress",
+      "Multiple concurrent submissions - Should queue properly"
+    ],
+    "load_testing": [
+      "Submit 5 concurrent analysis requests",
+      "Verify all get queued without blocking",
+      "Check progress updates work correctly"
+    ]
+  },
+  "deployment_considerations": {
+    "heroku_compatibility": "Must work with single dyno",
+    "memory_usage": "Monitor in-memory job storage",
+    "cleanup_strategy": "Prevent memory leaks from old jobs",
+    "logging": "Add comprehensive logging for debugging"
+  },
+  "success_criteria": {
+    "immediate_response": "POST /review-resume returns in <2 seconds",
+    "no_blocking": "Multiple requests can be submitted concurrently",
+    "progress_tracking": "Status endpoint shows real-time progress",
+    "error_handling": "Failed jobs don't crash the worker",
+    "resource_efficiency": "Memory usage stays within dyno limits"
+  },
+  "priority_order": [
+    "1. Implement job submission endpoint (immediate return)",
+    "2. Create in-memory job storage",
+    "3. Add background processing thread",
+    "4. Implement status checking endpoint",
+    "5. Add progress tracking",
+    "6. Implement job cleanup",
+    "7. Add comprehensive error handling",
+    "8. Test with multiple concurrent requests"
+  ]
+}

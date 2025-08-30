@@ -28,7 +28,7 @@ export const PdfUploadFlow: React.FC = () => {
             const data = await res.json();
             if (res.ok && data.text) {
                 setExtractedText(data.text);
-                const reviewRes = await fetch("http://127.0.0.1:8000/review-resume", {
+                const reviewRes = await fetch("https://openhire-2764a0388beb.herokuapp.com/review-resume", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",

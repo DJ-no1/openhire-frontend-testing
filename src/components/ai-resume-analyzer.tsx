@@ -67,7 +67,7 @@ export function AIResumeAnalyzer({ onAnalysisComplete, className }: AIResumeAnal
 
     const fetchJobs = async () => {
         try {
-            const response = await fetch('http://localhost:8000/jobs');
+            const response = await fetch('https://openhire-2764a0388beb.herokuapp.com/jobs');
             if (response.ok) {
                 const jobsData = await response.json();
                 setJobs(jobsData);

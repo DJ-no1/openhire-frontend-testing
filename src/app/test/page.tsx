@@ -6,10 +6,22 @@ import Link from 'next/link';
 const TestDashboard = () => {
     const testPages = [
         {
+            title: 'Async Resume Analysis',
+            description: 'NEW: Fast, reliable async resume analysis with real-time progress tracking',
+            href: '/test/async-resume-review',
+            status: 'Featured'
+        },
+        {
+            title: 'Resume Analysis Comparison',
+            description: 'Compare async vs legacy resume analysis performance',
+            href: '/test/resume-review',
+            status: 'Active'
+        },
+        {
             title: 'Comprehensive Video Test',
             description: 'Complete workflow: Device setup → Configuration → Live video streaming with image capture',
             href: '/test/comprehensive-video',
-            status: 'Featured'
+            status: 'Available'
         },
         {
             title: 'Live Video Component',
@@ -77,12 +89,12 @@ const TestDashboard = () => {
                                         {page.title}
                                     </h3>
                                     <span className={`px-2 py-1 text-xs font-medium rounded-full ${page.status === 'Featured'
-                                            ? 'bg-purple-100 text-purple-800'
-                                            : page.status === 'Active'
-                                                ? 'bg-green-100 text-green-800'
-                                                : page.status === 'New'
-                                                    ? 'bg-orange-100 text-orange-800'
-                                                    : 'bg-blue-100 text-blue-800'
+                                        ? 'bg-purple-100 text-purple-800'
+                                        : page.status === 'Active'
+                                            ? 'bg-green-100 text-green-800'
+                                            : page.status === 'New'
+                                                ? 'bg-orange-100 text-orange-800'
+                                                : 'bg-blue-100 text-blue-800'
                                         }`}>
                                         {page.status}
                                     </span>
