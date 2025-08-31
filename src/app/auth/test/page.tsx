@@ -5,7 +5,8 @@ import { useAuthLoading } from '@/hooks/useAuthLoading';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { DashboardSkeleton } from '@/components/ui/page-skeleton';
-import { CheckCircle, XCircle, User, Mail, Shield } from 'lucide-react';
+import { CheckCircle, XCircle, User, Mail, Shield, ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 
 export default function AuthTestPage() {
     const { user, loading, signOut } = useAuth();
@@ -18,6 +19,10 @@ export default function AuthTestPage() {
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
             <div className="max-w-4xl mx-auto space-y-6">
+                <Link href="/" className="inline-flex items-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-6 group text-sm">
+                    <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
+                    Back to Home
+                </Link>
                 <div className="text-center">
                     <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
                         Authentication Test Page

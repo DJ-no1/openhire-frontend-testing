@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
-import { Eye, EyeOff, Mail, User, Lock, UserCheck } from 'lucide-react';
+import { Eye, EyeOff, Mail, User, Lock, UserCheck, ArrowLeft } from 'lucide-react';
 
 export default function CandidateSignupPage() {
     const [formData, setFormData] = useState({
@@ -89,6 +89,10 @@ export default function CandidateSignupPage() {
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100 dark:from-gray-900 dark:to-gray-800 p-4">
             <div className="w-full max-w-md">
+                <Link href="/" className="inline-flex items-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-6 group text-sm">
+                    <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
+                    Back to Home
+                </Link>
                 <div className="text-center mb-8">
                     <div className="flex justify-center mb-4">
                         <div className="bg-primary/10 p-3 rounded-full">
