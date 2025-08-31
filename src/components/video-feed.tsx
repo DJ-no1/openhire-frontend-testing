@@ -361,24 +361,6 @@ const VideoFeed = ({
                 >
                     <Camera className="w-4 h-4" />
                 </Button>
-
-                {/* Debug info button */}
-                <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => {
-                        console.log('🔍 VideoFeed Debug Info:', {
-                            isInterviewActive,
-                            isVideoReady,
-                            screenshotCount,
-                            hasCallback: !!onImageCaptured,
-                            hasInterval: !!captureInterval
-                        });
-                    }}
-                    className="bg-blue-500/50 hover:bg-blue-600/70 text-white border-0 text-xs"
-                >
-                    Debug
-                </Button>
             </div>
         </div>
     );

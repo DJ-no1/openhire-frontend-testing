@@ -113,19 +113,7 @@ export default function InterviewPage() {
     }, [interviewStatus, capturedImages]);
 
     // Debug function for testing image storage (development only)
-    const debugStoreImages = () => {
-        if (process.env.NODE_ENV === 'development') {
-            console.log('DEBUG: Manual store images trigger - count:', capturedImages.length);
-
-            if (capturedImages.length === 0) {
-                // For testing, use some test URLs if no real images
-                const testImages = ['https://via.placeholder.com/640x480/0000FF/FFFFFF?text=Test+Image+1'];
-                storeImagesInInterviewArtifact(testImages);
-            } else {
-                storeImagesInInterviewArtifact(capturedImages);
-            }
-        }
-    };
+    
 
     // Handle status changes from AIInterview component
     const handleStatusChange = async (status: InterviewStatus) => {
@@ -616,7 +604,7 @@ export default function InterviewPage() {
 
                     {/* End Interview Button Overlay */}
                     {(interviewStatus === "connected" || interviewStatus === "connecting") && !isEndingInProgress && (
-                        <div className="absolute top-8 left-8 z-50 flex gap-2">
+                        <div className="absolute bottom-8 left-19 z-50 flex gap-2">
                             <Button
                                 onClick={handleEndInterviewClick}
                                 disabled={isEndingInProgress}
@@ -628,17 +616,6 @@ export default function InterviewPage() {
                                 {isEndingInProgress ? "Ending..." : "End Interview"}
                             </Button>
 
-                            {/* Debug button - only show in development */}
-                            {process.env.NODE_ENV === 'development' && (
-                                <Button
-                                    onClick={debugStoreImages}
-                                    variant="secondary"
-                                    size="sm"
-                                    className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg backdrop-blur-sm bg-opacity-90 border-0"
-                                >
-                                    🧪 Test Store Images
-                                </Button>
-                            )}
                         </div>
                     )}
 
