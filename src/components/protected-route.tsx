@@ -8,12 +8,14 @@ import { PageSkeleton } from '@/components/ui/page-skeleton';
 interface ProtectedRouteProps {
     children: React.ReactNode;
     requiredRole?: 'recruiter' | 'candidate';
+    allowedRoles?: ('recruiter' | 'candidate')[];
     fallbackUrl?: string;
 }
 
 export function ProtectedRoute({
     children,
     requiredRole,
+    allowedRoles,
     fallbackUrl
 }: ProtectedRouteProps) {
     const { user, loading } = useAuth();
@@ -39,11 +41,25 @@ export function ProtectedRoute({
             return;
         }
 
-        // For now, we skip role checking as user object from Supabase doesn't have role directly
-        // TODO: Implement role checking by fetching user profile from database if needed
+        // Check role requirements
+        const userRole = user.user_metadata?.role || 'candidate';
+
+        if (requiredRole && userRole !== requiredRole) {
+            // User doesn't have the required role
+            const redirectUrl = userRole === 'recruiter' ? '/recruiters/dashboard' : '/dashboard';
+            router.push(redirectUrl);
+            return;
+        }
+
+        if (allowedRoles && !allowedRoles.includes(userRole as 'recruiter' | 'candidate')) {
+            // User's role is not in the allowed roles list
+            const redirectUrl = userRole === 'recruiter' ? '/recruiters/dashboard' : '/dashboard';
+            router.push(redirectUrl);
+            return;
+        }
 
         setShouldRender(true);
-    }, [user, loading, requiredRole, fallbackUrl, router]);
+    }, [user, loading, requiredRole, allowedRoles, fallbackUrl, router]);
 
     if (loading) {
         return <PageSkeleton />;

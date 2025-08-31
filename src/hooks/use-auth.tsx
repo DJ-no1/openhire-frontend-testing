@@ -41,12 +41,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // If no user profile exists, create one automatically
             if (!userData || userData.length === 0) {
                 console.log('No user profile found, creating one...');
-                const userName = authData.user.user_metadata?.name || authData.user.email?.split('@')[0] || 'User';
+                const userName = authData.user.user_metadata?.name || authData.user.user_metadata?.display_name || authData.user.email?.split('@')[0] || 'User';
                 const userRole = authData.user.user_metadata?.role || 'candidate'; // Use role from metadata, default to candidate
 
-                // First, update the auth user metadata with the name and role
+                // First, update the auth user metadata with the name and role to ensure display_name is set
                 const { error: updateError } = await supabase.auth.updateUser({
                     data: {
+                        display_name: userName,
                         name: userName,
                         role: userRole
                     }
@@ -79,6 +80,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
 
             setUser(userData[0]);
+
+            // Check if name needs syncing (fix for existing "Job Applicant" names)
+            const authName = authData.user.user_metadata?.name ||
+                authData.user.user_metadata?.display_name;
+            if (authName && userData[0].name !== authName && userData[0].name === 'Job Applicant') {
+                console.log('Detected name mismatch, syncing:', { auth: authName, db: userData[0].name });
+
+                // Update the database with the correct name
+                const { error: nameUpdateError } = await supabase
+                    .from('users')
+                    .update({ name: authName })
+                    .eq('id', authData.user.id);
+
+                if (!nameUpdateError) {
+                    console.log('✅ Fixed user name from "Job Applicant" to:', authName);
+                    // Update local state
+                    setUser({ ...userData[0], name: authName });
+                } else {
+                    console.warn('Could not update user name:', nameUpdateError);
+                }
+            }
         } catch (error) {
             console.error('Error refreshing user:', error);
             setUser(null);

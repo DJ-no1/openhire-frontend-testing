@@ -69,9 +69,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             email,
             password,
             options: {
-                data: metadata,
+                data: {
+                    ...metadata,
+                    display_name: metadata?.name // Ensure display_name is set to the provided name
+                },
             },
         })
+
+        // If signup is successful and metadata contains name, update display_name
+        if (!error && metadata?.name) {
+            const { error: updateError } = await supabase.auth.updateUser({
+                data: {
+                    display_name: metadata.name,
+                    name: metadata.name,
+                    role: metadata.role
+                }
+            })
+
+            if (updateError) {
+                console.warn('Could not update auth user display_name:', updateError.message)
+            }
+        }
+
         return { error }
     }
 

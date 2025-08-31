@@ -35,14 +35,15 @@ export interface AuthResponse {
  */
 export async function signUp(data: SignUpData): Promise<AuthResponse> {
     try {
-        // First, sign up with Supabase Auth and include role in metadata
+        // First, sign up with Supabase Auth and include name and role in metadata
         const { data: authData, error: authError } = await supabase.auth.signUp({
             email: data.email,
             password: data.password,
             options: {
                 data: {
                     name: data.name,
-                    role: data.role
+                    role: data.role,
+                    display_name: data.name // Ensure display_name is set
                 }
             }
         });
@@ -53,6 +54,19 @@ export async function signUp(data: SignUpData): Promise<AuthResponse> {
 
         if (!authData.user) {
             return { error: { message: 'Failed to create user account' } };
+        }
+
+        // Update auth user's display_name to sync with the name field
+        const { error: updateError } = await supabase.auth.updateUser({
+            data: {
+                display_name: data.name,
+                name: data.name,
+                role: data.role
+            }
+        });
+
+        if (updateError) {
+            console.warn('Could not update auth user display_name:', updateError.message);
         }
 
         // Then create user profile in our users table
@@ -69,13 +83,14 @@ export async function signUp(data: SignUpData): Promise<AuthResponse> {
 
         if (userError) {
             // If user creation fails, we should clean up the auth user
-            // Note: This is a simplified approach - in production you might want to handle this differently
+            console.error('Failed to create user profile:', userError);
             await supabase.auth.signOut();
             return { error: { message: 'Failed to create user profile: ' + userError.message } };
         }
 
         return { user: userData };
     } catch (error) {
+        console.error('Sign up error:', error);
         return { error: { message: 'An unexpected error occurred during sign up' } };
     }
 }
@@ -111,12 +126,13 @@ export async function signIn(data: SignInData): Promise<AuthResponse> {
         // If no user profile exists, create one automatically
         if (!userData || userData.length === 0) {
             console.log('No user profile found, creating one...');
-            const userName = authData.user.user_metadata?.name || authData.user.email?.split('@')[0] || 'User';
+            const userName = authData.user.user_metadata?.name || authData.user.user_metadata?.display_name || authData.user.email?.split('@')[0] || 'User';
             const userRole = authData.user.user_metadata?.role || 'candidate'; // Use role from metadata, default to candidate
 
-            // First, update the auth user metadata with the name and role
+            // First, update the auth user metadata with the name and role to ensure display_name is set
             const { error: updateError } = await supabase.auth.updateUser({
                 data: {
+                    display_name: userName,
                     name: userName,
                     role: userRole
                 }
@@ -192,12 +208,13 @@ export async function getCurrentUser(): Promise<AuthResponse> {
         // If no user profile exists, create one automatically
         if (!userData || userData.length === 0) {
             console.log('No user profile found, creating one...');
-            const userName = authData.user.user_metadata?.name || authData.user.email?.split('@')[0] || 'User';
+            const userName = authData.user.user_metadata?.name || authData.user.user_metadata?.display_name || authData.user.email?.split('@')[0] || 'User';
             const userRole = authData.user.user_metadata?.role || 'candidate'; // Use role from metadata, default to candidate
 
-            // First, update the auth user metadata with the name and role
+            // First, update the auth user metadata with the name and role to ensure display_name is set
             const { error: updateError } = await supabase.auth.updateUser({
                 data: {
+                    display_name: userName,
                     name: userName,
                     role: userRole
                 }
@@ -266,7 +283,7 @@ export async function resetPassword(email: string): Promise<{ error?: AuthError 
  */
 export async function updateUserProfile(userId: string, updates: Partial<Pick<User, 'name' | 'role'>>): Promise<AuthResponse> {
     try {
-        // Update user profile in our users table
+        // First, update the users table
         const { data: userData, error: userError } = await supabase
             .from('users')
             .update(updates)
@@ -278,19 +295,26 @@ export async function updateUserProfile(userId: string, updates: Partial<Pick<Us
             return { error: { message: 'Failed to update user profile: ' + userError.message } };
         }
 
-        // If name was updated, also update auth metadata
+        // If name was updated, sync it to auth metadata and display_name
         if (updates.name) {
-            const { error: updateError } = await supabase.auth.updateUser({
-                data: { name: updates.name }
+            const { error: authUpdateError } = await supabase.auth.updateUser({
+                data: {
+                    name: updates.name,
+                    display_name: updates.name,
+                    ...(updates.role && { role: updates.role })
+                }
             });
 
-            if (updateError) {
-                console.warn('Could not update auth user metadata:', updateError.message);
+            if (authUpdateError) {
+                console.warn('Could not update auth user metadata:', authUpdateError.message);
             }
         }
 
         return { user: userData };
     } catch (error) {
-        return { error: { message: 'An unexpected error occurred while updating profile' } };
+        console.error('Update user profile error:', error);
+        return { error: { message: 'An unexpected error occurred during profile update' } };
     }
 }
+
+

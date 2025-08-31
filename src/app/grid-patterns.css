@@ -1,0 +1,67 @@
+/* Grid Pattern Backgrounds */
+.bg-grid-slate-100 {
+  background-image: radial-gradient(circle, rgb(241 245 249) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.bg-grid-slate-700 {
+  background-image: radial-gradient(circle, rgb(51 65 85 / 0.3) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.bg-grid-white {
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Gradient Animations */
+@keyframes gradient-x {
+  0%, 100% {
+    transform: translateX(-50%);
+  }
+  50% {
+    transform: translateX(50%);
+  }
+}
+
+@keyframes gradient-y {
+  0%, 100% {
+    transform: translateY(-50%);
+  }
+  50% {
+    transform: translateY(50%);
+  }
+}
+
+@keyframes gradient-xy {
+  0%, 100% {
+    transform: translateX(-50%) translateY(-50%);
+  }
+  25% {
+    transform: translateX(50%) translateY(-50%);
+  }
+  50% {
+    transform: translateX(50%) translateY(50%);
+  }
+  75% {
+    transform: translateX(-50%) translateY(50%);
+  }
+}
+
+.animate-gradient-x {
+  animation: gradient-x 3s ease infinite;
+}
+
+.animate-gradient-y {
+  animation: gradient-y 3s ease infinite;
+}
+
+.animate-gradient-xy {
+  animation: gradient-xy 6s ease infinite;
+}
+
+/* Mask Image Support */
+.mask-gradient {
+  mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
+}

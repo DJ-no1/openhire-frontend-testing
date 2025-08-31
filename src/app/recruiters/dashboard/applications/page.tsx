@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ProtectedRoute } from '@/components/protected-route';
 import { AppNavigation } from '@/components/app-navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -93,6 +93,7 @@ interface JobOption {
 export default function ApplicationsPage() {
     const { user } = useAuth();
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [applications, setApplications] = useState<ApplicationWithDetails[]>([]);
     const [filteredApplications, setFilteredApplications] = useState<ApplicationWithDetails[]>([]);
     const [jobs, setJobs] = useState<JobOption[]>([]);
@@ -101,6 +102,14 @@ export default function ApplicationsPage() {
     const [statusFilter, setStatusFilter] = useState<string>('all');
     const [loading, setLoading] = useState(true);
     const [loadingJobs, setLoadingJobs] = useState(true);
+
+    // Set initial filter from URL parameters
+    useEffect(() => {
+        const jobIdFromUrl = searchParams.get('selectedJobId');
+        if (jobIdFromUrl) {
+            setSelectedJobId(jobIdFromUrl);
+        }
+    }, [searchParams]);
 
     useEffect(() => {
         if (user?.id) {

@@ -1,81 +1,236 @@
-import { updateSession } from './src/lib/supabase/middleware'
+import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-export async function middleware(request: NextRequest) {
-    const { pathname } = request.nextUrl
+// Route configuration
+const ROUTE_CONFIG = {
+    // Public routes that don't require authentication
+    PUBLIC_ROUTES: [
+        '/',
+        '/about',
+        '/contact',
+        '/features',
+        '/pricing',
+        '/privacy',
+        '/terms',
+        '/get-started',
+        '/auth/signin',
+        '/auth/signup',
+        '/recruiters/auth/signin',
+        '/recruiters/auth/signup',
+        '/forgot-password',
+        '/reset-password'
+    ],
 
-    // Skip middleware for API routes, static files, public assets, and public job pages
-    if (pathname.startsWith('/api') ||
-        pathname.startsWith('/_next') ||
-        pathname.startsWith('/favicon.ico') ||
-        pathname.startsWith('/public') ||
-        pathname.startsWith('/test') ||
-        pathname.startsWith('/jobs') ||
-        pathname.includes('/interview-result') || // Allow interview-result pages for testing
-        pathname === '/') {
-        return NextResponse.next()
+    // Routes that are excluded from middleware processing
+    EXCLUDED_PATHS: [
+        '/api',
+        '/_next',
+        '/favicon.ico',
+        '/public',
+        '/test',
+        '/jobs', // Public job listings
+        '/interview-result'
+    ],
+
+    // Role-specific route patterns
+    CANDIDATE_ROUTES: [
+        '/dashboard',
+        '/profile',
+        '/applications',
+        '/interviews',
+        '/settings'
+    ],
+
+    RECRUITER_ROUTES: [
+        '/recruiters'
+    ]
+}
+
+// Default redirects for each role
+const DEFAULT_REDIRECTS = {
+    candidate: '/dashboard',
+    recruiter: '/recruiters/dashboard',
+    unauthenticated: '/auth/signin'
+}
+
+/**
+ * Get user role from the users table in the database
+ */
+async function getUserRole(supabase: any, userId: string): Promise<string | null> {
+    try {
+        const { data, error } = await supabase
+            .from('users')
+            .select('role')
+            .eq('id', userId)
+            .single()
+
+        if (error) {
+            console.error('Error fetching user role:', error)
+            return null
+        }
+
+        return data?.role || null
+    } catch (error) {
+        console.error('Exception while fetching user role:', error)
+        return null
     }
+}
 
-    // Update session using Supabase SSR
-    const { supabaseResponse, user } = await updateSession(request)
+/**
+ * Check if a path should be excluded from middleware processing
+ */
+function isExcludedPath(pathname: string): boolean {
+    return ROUTE_CONFIG.EXCLUDED_PATHS.some(path => pathname.startsWith(path))
+}
 
-    // Get user role from metadata
-    const userRole = user?.user_metadata?.role || 'candidate'
+/**
+ * Check if a path is a public route (accessible without authentication)
+ */
+function isPublicRoute(pathname: string): boolean {
+    return ROUTE_CONFIG.PUBLIC_ROUTES.includes(pathname)
+}
 
-    // Paths that require authentication
-    const protectedPaths = ['/dashboard', '/recruiters']
-
-    // Paths that require recruiter role
-    const recruiterPaths = ['/recruiters']
-
-    // Paths that require candidate role  
-    const candidatePaths = ['/dashboard']
-
-    // Auth pages
+/**
+ * Check if a path is an auth page (signin/signup)
+ */
+function isAuthPage(pathname: string): boolean {
     const authPages = [
         '/auth/signin',
         '/auth/signup',
         '/recruiters/auth/signin',
         '/recruiters/auth/signup'
     ]
+    return authPages.includes(pathname)
+}
 
-    // Check if the current path is protected
-    const isProtectedPath = protectedPaths.some(path => pathname.startsWith(path))
-    const isRecruiterPath = recruiterPaths.some(path => pathname.startsWith(path))
-    const isCandidatePath = candidatePaths.some(path => pathname.startsWith(path))
-    const isAuthPage = authPages.some(path => pathname.startsWith(path))
-
-    // If accessing a protected path without authentication, redirect to signin
-    if (isProtectedPath && !user) {
-        const redirectTo = isRecruiterPath ? '/recruiters/auth/signin' : '/auth/signin'
-        const redirectUrl = new URL(redirectTo, request.url)
-        return NextResponse.redirect(redirectUrl)
+/**
+ * Check if a user role is allowed to access a specific path
+ */
+function isAllowedRoute(pathname: string, userRole: string): boolean {
+    // Public routes are always allowed
+    if (isPublicRoute(pathname)) {
+        return true
     }
 
-    // If authenticated and accessing auth pages, redirect to appropriate dashboard based on user role
-    if (user && isAuthPage) {
-        const redirectTo = userRole === 'recruiter' ? '/recruiters/dashboard' : '/dashboard'
-        const redirectUrl = new URL(redirectTo, request.url)
-        return NextResponse.redirect(redirectUrl)
+    if (userRole === 'recruiter') {
+        // Recruiters can only access recruiter routes
+        return ROUTE_CONFIG.RECRUITER_ROUTES.some(route => pathname.startsWith(route))
+    } else if (userRole === 'candidate') {
+        // Candidates can access candidate routes but not recruiter routes
+        const isRecruiterRoute = ROUTE_CONFIG.RECRUITER_ROUTES.some(route => pathname.startsWith(route))
+        return !isRecruiterRoute
     }
 
-    // Role-based access control for authenticated users
-    if (user && isProtectedPath) {
-        // Prevent candidates from accessing recruiter pages
-        if (userRole === 'candidate' && isRecruiterPath) {
-            const redirectUrl = new URL('/dashboard', request.url)
-            return NextResponse.redirect(redirectUrl)
+    return false
+}
+
+/**
+ * Get the appropriate redirect URL based on user role and current path
+ */
+function getRedirectUrl(request: NextRequest, userRole: string | null, isAuthenticated: boolean): string | null {
+    const { pathname } = request.nextUrl
+
+    // Handle root path redirection
+    if (pathname === '/') {
+        if (isAuthenticated && userRole) {
+            return DEFAULT_REDIRECTS[userRole as keyof typeof DEFAULT_REDIRECTS]
+        }
+        // Don't redirect unauthenticated users from home page - let them see the landing page
+        return null
+    }
+
+    // Handle auth page access by authenticated users
+    if (isAuthenticated && isAuthPage(pathname)) {
+        if (userRole) {
+            return DEFAULT_REDIRECTS[userRole as keyof typeof DEFAULT_REDIRECTS]
+        }
+    }
+
+    // Handle unauthenticated access to protected routes
+    if (!isAuthenticated && !isPublicRoute(pathname)) {
+        return '/auth/signin'  // Redirect to signin for protected routes
+    }
+
+    // Handle role-based route restrictions
+    if (isAuthenticated && userRole && !isAllowedRoute(pathname, userRole)) {
+        return DEFAULT_REDIRECTS[userRole as keyof typeof DEFAULT_REDIRECTS]
+    }
+
+    return null
+}
+
+export async function middleware(request: NextRequest) {
+    const { pathname } = request.nextUrl
+
+    // Skip middleware for excluded paths
+    if (isExcludedPath(pathname)) {
+        return NextResponse.next()
+    }
+
+    let supabaseResponse = NextResponse.next({
+        request,
+    })
+
+    const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+            cookies: {
+                getAll() {
+                    return request.cookies.getAll()
+                },
+                setAll(cookiesToSet) {
+                    cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+                    supabaseResponse = NextResponse.next({
+                        request,
+                    })
+                    cookiesToSet.forEach(({ name, value, options }) =>
+                        supabaseResponse.cookies.set(name, value, options)
+                    )
+                },
+            },
+        }
+    )
+
+    // Get user session
+    const {
+        data: { user },
+    } = await supabase.auth.getUser()
+
+    const isAuthenticated = !!user
+    let userRole: string | null = null
+
+    // If user is authenticated, get their role from the database
+    if (isAuthenticated && user) {
+        // First try to get role from metadata as fallback
+        userRole = user.user_metadata?.role || null
+
+        // Then try to get the authoritative role from the database
+        const dbRole = await getUserRole(supabase, user.id)
+        if (dbRole) {
+            userRole = dbRole
         }
 
-        // Prevent recruiters from accessing candidate pages
-        if (userRole === 'recruiter' && isCandidatePath) {
-            const redirectUrl = new URL('/recruiters/dashboard', request.url)
-            return NextResponse.redirect(redirectUrl)
+        // If no role found anywhere, default to candidate
+        if (!userRole) {
+            userRole = 'candidate'
         }
     }
 
-    // Set security headers to improve session persistence
+    // Determine if a redirect is needed
+    const redirectUrl = getRedirectUrl(request, userRole, isAuthenticated)
+
+    if (redirectUrl) {
+        const url = new URL(redirectUrl, request.url)
+
+        // Prevent redirect loops by checking if we're already at the target
+        if (url.pathname !== pathname) {
+            return NextResponse.redirect(url)
+        }
+    }
+
+    // Set security headers
     supabaseResponse.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
     supabaseResponse.headers.set('Pragma', 'no-cache')
     supabaseResponse.headers.set('Expires', '0')

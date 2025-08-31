@@ -1,6 +1,22 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Grid Pattern Backgrounds */
+.bg-grid-slate-100 {
+  background-image: radial-gradient(circle, rgb(241 245 249) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.bg-grid-slate-700 {
+  background-image: radial-gradient(circle, rgb(51 65 85 / 0.3) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.bg-grid-white {
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

@@ -138,13 +138,32 @@ export class DatabaseService {
             console.log('User does not exist, creating new user with ID:', candidateId);
 
             try {
+                // Try to get the actual user data from current auth session first
+                const { data: { user: currentUser } } = await supabase.auth.getUser();
+
+                let userName = 'Job Applicant'; // fallback
+                let userEmail = `candidate-${candidateId.slice(0, 8)}@openhire.com`; // fallback
+
+                // If current user matches candidateId, use their real data
+                if (currentUser && currentUser.id === candidateId) {
+                    userName = currentUser.user_metadata?.name ||
+                        currentUser.user_metadata?.display_name ||
+                        currentUser.email?.split('@')[0] ||
+                        'Job Applicant';
+                    userEmail = currentUser.email || userEmail;
+
+                    console.log('Using current auth user data:', { name: userName, email: userEmail });
+                } else {
+                    console.warn('Current user does not match candidateId or no auth session, using fallback values');
+                }
+
                 const { data: newUser, error: createError } = await supabase
                     .from('users')
                     .insert({
                         id: candidateId,
-                        email: `candidate-${candidateId.slice(0, 8)}@openhire.com`,
+                        email: userEmail,
                         role: 'candidate',
-                        name: 'Job Applicant'
+                        name: userName
                     })
                     .select()
                     .single();
@@ -558,6 +577,61 @@ export class DatabaseService {
             job: DatabaseJob;
             candidate: DatabaseUser;
         })[];
+    }
+
+    // Get application counts for multiple jobs
+    static async getApplicationCountsForJobs(jobIds: string[]): Promise<Record<string, number>> {
+        if (jobIds.length === 0) return {};
+
+        try {
+            const { data, error } = await supabase
+                .from('applications')
+                .select('job_id')
+                .in('job_id', jobIds);
+
+            if (error) {
+                console.error('Error fetching application counts:', error);
+                return {};
+            }
+
+            // Count applications per job
+            const counts: Record<string, number> = {};
+            data.forEach(app => {
+                counts[app.job_id] = (counts[app.job_id] || 0) + 1;
+            });
+
+            // Ensure all job IDs are present in the result
+            jobIds.forEach(id => {
+                if (!(id in counts)) {
+                    counts[id] = 0;
+                }
+            });
+
+            return counts;
+        } catch (error) {
+            console.error('Error in getApplicationCountsForJobs:', error);
+            return {};
+        }
+    }
+
+    // Get application count for a single job
+    static async getApplicationCountForJob(jobId: string): Promise<number> {
+        try {
+            const { count, error } = await supabase
+                .from('applications')
+                .select('*', { count: 'exact', head: true })
+                .eq('job_id', jobId);
+
+            if (error) {
+                console.error('Error fetching application count for job:', jobId, error);
+                return 0;
+            }
+
+            return count || 0;
+        } catch (error) {
+            console.error('Error in getApplicationCountForJob:', error);
+            return 0;
+        }
     }
 
     // Get a specific application by ID with all related data

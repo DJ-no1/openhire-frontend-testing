@@ -41,12 +41,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // If no user profile exists, create one automatically
             if (!userData || userData.length === 0) {
                 console.log('No user profile found, creating one...');
-                const userName = authData.user.user_metadata?.name || authData.user.email?.split('@')[0] || 'User';
+                const userName = authData.user.user_metadata?.name || authData.user.user_metadata?.display_name || authData.user.email?.split('@')[0] || 'User';
                 const userRole = authData.user.user_metadata?.role || 'candidate'; // Use role from metadata, default to candidate
 
-                // First, update the auth user metadata with the name and role
+                // First, update the auth user metadata with the name and role to ensure display_name is set
                 const { error: updateError } = await supabase.auth.updateUser({
                     data: {
+                        display_name: userName,
                         name: userName,
                         role: userRole
                     }
@@ -198,56 +199,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return (
         <AuthContext.Provider value={{ user, loading, signOut, refreshUser }}>
-            {children}
-        </AuthContext.Provider>
-    );
-}
-
-export function useAuth() {
-    const context = useContext(AuthContext);
-    if (context === undefined) {
-        throw new Error('useAuth must be used within an AuthProvider');
-    }
-    return context;
-}
-                            console.warn('Could not update auth user metadata:', updateError.message);
-                        }
-
-                        // Then create user profile in our users table
-                        const { data: newUserData, error: createError } = await supabase
-                            .from('users')
-                            .insert({
-                                id: session.user.id,
-                                email: session.user.email || '',
-                                name: userName,
-                                role: userRole,
-                            })
-                            .select()
-                            .single();
-
-                        if (!createError && newUserData) {
-                            setUser(newUserData);
-                        }
-                    }
-                } else if (event === 'SIGNED_OUT') {
-                    setUser(null);
-                }
-                setLoading(false);
-            }
-        );
-
-        return () => subscription.unsubscribe();
-    }, []);
-
-    const value = {
-        user,
-        loading,
-        signOut,
-        refreshUser,
-    };
-
-    return (
-        <AuthContext.Provider value={value}>
             {children}
         </AuthContext.Provider>
     );

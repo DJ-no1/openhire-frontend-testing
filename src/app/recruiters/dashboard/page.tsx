@@ -7,7 +7,20 @@ import { Button } from '@/components/ui/button';
 import { CreateJobModal } from '@/components/create-job-modal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthLoading } from '@/hooks/useAuthLoading';
-import { DashboardSkeleton } from '@/components/ui/page-skeleton';
+import {
+    useRecruiterStats,
+    useRecruiterActivity,
+    useRecruiterPerformance,
+    formatTimeAgo,
+    getActivityIcon,
+    formatActivityDescription
+} from '@/hooks/useDashboardData';
+import {
+    RecruiterStatsSkeleton,
+    RecentActivitySkeleton,
+    PerformanceOverviewSkeleton,
+    DashboardErrorState
+} from '@/components/ui/dashboard-skeleton';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import {
@@ -45,12 +58,32 @@ const navigationItems = [
 
 export default function RecruiterDashboardPage() {
     const { user } = useAuth();
-    const { isLoading } = useAuthLoading();
+    const { isLoading: authLoading } = useAuthLoading();
     const router = useRouter();
     const [createJobModalOpen, setCreateJobModalOpen] = useState(false);
 
-    if (isLoading) {
-        return <DashboardSkeleton />;
+    // Fetch dynamic data
+    const { data: stats, loading: statsLoading, error: statsError } = useRecruiterStats();
+    const { data: activity, loading: activityLoading, error: activityError } = useRecruiterActivity(4);
+    const { data: performance, loading: performanceLoading, error: performanceError } = useRecruiterPerformance();
+
+    if (authLoading) {
+        return (
+            <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+                <AppNavigation
+                    items={navigationItems}
+                    title="OpenHire"
+                    subtitle="Recruiter Dashboard"
+                />
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                    <RecruiterStatsSkeleton />
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <RecentActivitySkeleton />
+                        <PerformanceOverviewSkeleton />
+                    </div>
+                </div>
+            </div>
+        );
     }
 
     const handleJobCreated = () => {
@@ -58,64 +91,53 @@ export default function RecruiterDashboardPage() {
         window.location.reload();
     };
 
-    const stats = [
+    // Format stats for display
+    const formatStats = (stats: any) => [
         {
             title: 'Active Jobs',
-            value: '12',
-            description: '3 new this week',
+            value: stats?.active_jobs?.toString() || '0',
+            description: `${stats?.new_jobs_this_week || 0} new this week`,
             icon: <Briefcase className="h-8 w-8 text-blue-600" />,
-            trend: '+12%'
+            trend: stats?.new_jobs_this_week > 0 ? '+12%' : '0%'
         },
         {
             title: 'Total Applications',
-            value: '142',
-            description: '18 pending review',
+            value: stats?.total_applications?.toString() || '0',
+            description: `${stats?.pending_applications || 0} pending review`,
             icon: <FileText className="h-8 w-8 text-green-600" />,
             trend: '+8%'
         },
         {
             title: 'Interviews Scheduled',
-            value: '24',
-            description: '5 this week',
+            value: stats?.interviews_scheduled?.toString() || '0',
+            description: `${stats?.interviews_this_week || 0} this week`,
             icon: <Calendar className="h-8 w-8 text-purple-600" />,
             trend: '+15%'
         },
         {
             title: 'Candidates Hired',
-            value: '8',
-            description: '2 this month',
+            value: stats?.candidates_hired?.toString() || '0',
+            description: `${stats?.hires_this_month || 0} this month`,
             icon: <UserPlus className="h-8 w-8 text-orange-600" />,
             trend: '+25%'
         },
     ];
 
-    const recentActivity = [
-        {
-            action: 'New application received',
-            candidate: 'John Doe',
-            job: 'Senior Frontend Developer',
-            time: '2 hours ago'
-        },
-        {
-            action: 'Interview completed',
-            candidate: 'Jane Smith',
-            job: 'UX Designer',
-            time: '4 hours ago'
-        },
-        {
-            action: 'Job posted',
-            candidate: '',
-            job: 'Full Stack Developer',
-            time: '1 day ago'
-        },
-        {
-            action: 'Candidate hired',
-            candidate: 'Mike Johnson',
-            job: 'Backend Developer',
-            time: '2 days ago'
-        },
-    ];
-
+    // Activity icon mapping
+    const getActivityIconComponent = (type: string) => {
+        switch (type) {
+            case 'new_application':
+                return <FileText className="h-4 w-4" />;
+            case 'interview_completed':
+                return <Calendar className="h-4 w-4" />;
+            case 'job_posted':
+                return <Briefcase className="h-4 w-4" />;
+            case 'candidate_hired':
+                return <UserPlus className="h-4 w-4" />;
+            default:
+                return <FileText className="h-4 w-4" />;
+        }
+    };
     return (
         <ProtectedRoute requiredRole="recruiter">
             <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -158,123 +180,150 @@ export default function RecruiterDashboardPage() {
                     </div>
 
                     {/* Stats Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                        {stats.map((stat, index) => (
-                            <Card key={index}>
-                                <CardContent className="p-6">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                                                {stat.title}
-                                            </p>
-                                            <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
-                                                {stat.value}
-                                            </p>
-                                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                                {stat.description}
-                                            </p>
+                    {statsLoading ? (
+                        <RecruiterStatsSkeleton />
+                    ) : statsError ? (
+                        <DashboardErrorState error={statsError} />
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                            {formatStats(stats).map((stat, index) => (
+                                <Card key={index}>
+                                    <CardContent className="p-6">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                                                    {stat.title}
+                                                </p>
+                                                <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
+                                                    {stat.value}
+                                                </p>
+                                                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                                    {stat.description}
+                                                </p>
+                                            </div>
+                                            <div className="flex flex-col items-end">
+                                                {stat.icon}
+                                                <span className="text-sm font-medium text-green-600 mt-2">
+                                                    {stat.trend}
+                                                </span>
+                                            </div>
                                         </div>
-                                        <div className="flex flex-col items-end">
-                                            {stat.icon}
-                                            <span className="text-sm font-medium text-green-600 mt-2">
-                                                {stat.trend}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                    )}
 
                     {/* Main Content Grid */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Recent Activity */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Recent Activity</CardTitle>
-                                <CardDescription>
-                                    Latest updates from your recruitment process
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-4">
-                                    {recentActivity.map((activity, index) => (
-                                        <div key={index} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                                            <div className="flex-shrink-0 w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-medium text-gray-900 dark:text-white">
-                                                    {activity.action}
-                                                    {activity.candidate && (
-                                                        <span className="text-blue-600 dark:text-blue-400">
-                                                            {' '}for {activity.candidate}
-                                                        </span>
-                                                    )}
-                                                </p>
-                                                <p className="text-sm text-gray-500 dark:text-gray-400">
-                                                    {activity.job}
-                                                </p>
-                                                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                                                    {activity.time}
-                                                </p>
+                        {activityLoading ? (
+                            <RecentActivitySkeleton />
+                        ) : activityError ? (
+                            <DashboardErrorState error={activityError} />
+                        ) : activity && activity.length > 0 ? (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Recent Activity</CardTitle>
+                                    <CardDescription>
+                                        Latest updates from your recruitment process
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="space-y-4">
+                                        {activity.map((activityItem) => (
+                                            <div key={activityItem.id} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                                                <div className="flex-shrink-0 w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                                        {formatActivityDescription(activityItem)}
+                                                    </p>
+                                                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                                                        {activityItem.job_title}
+                                                    </p>
+                                                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                                                        {formatTimeAgo(activityItem.timestamp)}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ) : (
+                            <Card>
+                                <CardContent className="p-6 text-center">
+                                    <div className="text-gray-400 mb-4">
+                                        <FileText className="h-12 w-12 mx-auto" />
+                                    </div>
+                                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                                        No recent activity
+                                    </h3>
+                                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                                        Start posting jobs and reviewing applications to see activity here.
+                                    </p>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {/* Performance Overview */}
+                        {performanceLoading ? (
+                            <PerformanceOverviewSkeleton />
+                        ) : performanceError ? (
+                            <DashboardErrorState error={performanceError} />
+                        ) : (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Performance Overview</CardTitle>
+                                    <CardDescription>
+                                        Your recruitment metrics this month
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="space-y-6">
+                                        <div>
+                                            <div className="flex justify-between text-sm mb-2">
+                                                <span className="text-gray-600 dark:text-gray-400">Application Response Rate</span>
+                                                <span className="font-medium">{performance?.application_response_rate || 0}%</span>
+                                            </div>
+                                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                                <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${performance?.application_response_rate || 0}%` }}></div>
                                             </div>
                                         </div>
-                                    ))}
-                                </div>
-                            </CardContent>
-                        </Card>
 
-                        {/* Quick Stats */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Performance Overview</CardTitle>
-                                <CardDescription>
-                                    Your recruitment metrics this month
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-6">
-                                    <div>
-                                        <div className="flex justify-between text-sm mb-2">
-                                            <span className="text-gray-600 dark:text-gray-400">Application Response Rate</span>
-                                            <span className="font-medium">78%</span>
+                                        <div>
+                                            <div className="flex justify-between text-sm mb-2">
+                                                <span className="text-gray-600 dark:text-gray-400">Interview to Hire Rate</span>
+                                                <span className="font-medium">{performance?.interview_to_hire_rate || 0}%</span>
+                                            </div>
+                                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                                <div className="bg-green-600 h-2 rounded-full" style={{ width: `${performance?.interview_to_hire_rate || 0}%` }}></div>
+                                            </div>
                                         </div>
-                                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                            <div className="bg-blue-600 h-2 rounded-full" style={{ width: '78%' }}></div>
+
+                                        <div>
+                                            <div className="flex justify-between text-sm mb-2">
+                                                <span className="text-gray-600 dark:text-gray-400">Time to Hire (avg)</span>
+                                                <span className="font-medium">{performance?.avg_time_to_hire || 0} days</span>
+                                            </div>
+                                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                                <div className="bg-purple-600 h-2 rounded-full" style={{ width: '60%' }}></div>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <div className="flex justify-between text-sm mb-2">
+                                                <span className="text-gray-600 dark:text-gray-400">Job Fill Rate</span>
+                                                <span className="font-medium">{performance?.job_fill_rate || 0}%</span>
+                                            </div>
+                                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                                <div className="bg-orange-600 h-2 rounded-full" style={{ width: `${performance?.job_fill_rate || 0}%` }}></div>
+                                            </div>
                                         </div>
                                     </div>
-
-                                    <div>
-                                        <div className="flex justify-between text-sm mb-2">
-                                            <span className="text-gray-600 dark:text-gray-400">Interview to Hire Rate</span>
-                                            <span className="font-medium">32%</span>
-                                        </div>
-                                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                            <div className="bg-green-600 h-2 rounded-full" style={{ width: '32%' }}></div>
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <div className="flex justify-between text-sm mb-2">
-                                            <span className="text-gray-600 dark:text-gray-400">Time to Hire (avg)</span>
-                                            <span className="font-medium">14 days</span>
-                                        </div>
-                                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                            <div className="bg-purple-600 h-2 rounded-full" style={{ width: '60%' }}></div>
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <div className="flex justify-between text-sm mb-2">
-                                            <span className="text-gray-600 dark:text-gray-400">Job Fill Rate</span>
-                                            <span className="font-medium">85%</span>
-                                        </div>
-                                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                            <div className="bg-orange-600 h-2 rounded-full" style={{ width: '85%' }}></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
+                                </CardContent>
+                            </Card>
+                        )}
                     </div>
                 </div>
 
