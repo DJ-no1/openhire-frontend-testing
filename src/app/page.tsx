@@ -482,47 +482,7 @@ export default function HomePage() {
             ))}
           </div>
         </div>
-      </section>
-
-      {/* Final CTA Section */}
-      <section className="py-24 bg-gradient-to-br from-blue-600 via-purple-600 to-blue-800 relative overflow-hidden">
-        {/* Background Effects */}
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20"></div>
-        <div className="absolute inset-0 bg-grid-white/[0.05] [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.5))]"></div>
-
-        <div className="relative max-w-5xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-          <h2 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight">
-            Ready to revolutionize{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-orange-300">
-              your hiring?
-            </span>
-          </h2>
-          <p className="text-xl md:text-2xl text-blue-100 mb-12 max-w-3xl mx-auto leading-relaxed">
-            Join thousands of companies and candidates who have transformed their recruitment
-            experience with AI-powered precision.
-          </p>
-
-          {!user && (
-            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-              <Link href="/get-started">
-                <Button size="lg" className="text-lg px-12 py-4 bg-white text-blue-600 hover:bg-gray-100 shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-200">
-                  <Rocket className="mr-2 h-5 w-5" />
-                  Get Started Free
-                </Button>
-              </Link>
-              <Link href="/contact">
-                <Button variant="outline" size="lg" className="text-lg px-12 py-4 border-white text-white hover:bg-white hover:text-blue-600 transition-all duration-200">
-                  Talk to Sales
-                </Button>
-              </Link>
-            </div>
-          )}
-
-          <div className="mt-12 text-blue-200 text-sm">
-            ✨ No credit card required • 14-day free trial • Cancel anytime
-          </div>
-        </div>
-      </section>
+      </section>      
     </PublicLayout>
   );
 }

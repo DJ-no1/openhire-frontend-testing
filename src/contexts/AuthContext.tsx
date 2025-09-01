@@ -65,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const signUp = async (email: string, password: string, metadata?: any) => {
-        const { error } = await supabase.auth.signUp({
+        const { data: authData, error } = await supabase.auth.signUp({
             email,
             password,
             options: {
@@ -76,18 +76,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             },
         })
 
-        // If signup is successful and metadata contains name, update display_name
-        if (!error && metadata?.name) {
+        // If signup is successful, immediately create user profile in public.users table
+        if (!error && authData.user && metadata) {
+            const userName = metadata.name || email.split('@')[0] || 'User'
+            const userRole = metadata.role || 'candidate'
+
+            // Update auth user metadata
             const { error: updateError } = await supabase.auth.updateUser({
                 data: {
-                    display_name: metadata.name,
-                    name: metadata.name,
-                    role: metadata.role
+                    display_name: userName,
+                    name: userName,
+                    role: userRole
                 }
             })
 
             if (updateError) {
                 console.warn('Could not update auth user display_name:', updateError.message)
+            }
+
+            // Immediately create user profile in public.users table
+            const { error: createProfileError } = await supabase
+                .from('users')
+                .insert({
+                    id: authData.user.id,
+                    email: email,
+                    name: userName,
+                    role: userRole,
+                })
+
+            if (createProfileError) {
+                console.error('Failed to create user profile immediately after signup:', createProfileError)
+                // Note: We don't return this error to avoid blocking signup, but we log it
+            } else {
+                console.log('✅ User profile created immediately after signup:', { id: authData.user.id, email, name: userName, role: userRole })
             }
         }
 

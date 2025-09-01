@@ -173,13 +173,15 @@ export const AIDescriptionGenerator: React.FC<AIDescriptionGeneratorProps> = ({
                             {isArray ? (
                                 <ul className="list-disc list-inside space-y-1">
                                     {(content as string[]).map((item, index) => (
-                                        <li key={index} className="text-sm">
-                                            <ReactMarkdown >{item}</ReactMarkdown>
+                                        <li key={index} className="text-sm text-gray-700">
+                                            {item}
                                         </li>
                                     ))}
                                 </ul>
                             ) : (
-                                <ReactMarkdown >{content as string}</ReactMarkdown>
+                                <div className="text-sm text-gray-700 whitespace-pre-wrap">
+                                    {content as string}
+                                </div>
                             )}
                         </div>
                     )}

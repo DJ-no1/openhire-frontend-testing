@@ -382,13 +382,35 @@ export class DatabaseService {
     // Get all applications for a job (recruiter view)
     static async getApplicationsForJob(jobId: string) {
         try {
-            // Try explicit foreign key approach first
+            // Try explicit foreign key approach first with interview artifacts
             const { data, error } = await supabase
                 .from('applications')
                 .select(`
                     *,
                     candidate:users(*),
-                    user_resume!user_resume_application_id_fkey(*)
+                    user_resume!user_resume_application_id_fkey(*),
+                    interviews(
+                        id,
+                        application_id,
+                        start_time,
+                        end_time,
+                        ai_summary,
+                        confidence,
+                        knowledge_score,
+                        result,
+                        created_at,
+                        interview_artifacts(
+                            id,
+                            interview_id,
+                            conversation,
+                            image_url,
+                            timestamp,
+                            detailed_score,
+                            overall_score,
+                            overall_feedback,
+                            status
+                        )
+                    )
                 `)
                 .eq('job_id', jobId)
                 .order('created_at', { ascending: false });
@@ -396,6 +418,9 @@ export class DatabaseService {
             if (!error && data) {
                 return data as (DatabaseApplication & {
                     user_resume: DatabaseUserResume[];
+                    interviews: (DatabaseInterview & {
+                        interview_artifacts: DatabaseInterviewArtifacts[];
+                    })[];
                 })[];
             }
         } catch (firstError) {
@@ -407,7 +432,29 @@ export class DatabaseService {
             .from('applications')
             .select(`
                 *,
-                candidate:users(*)
+                candidate:users(*),
+                interviews(
+                    id,
+                    application_id,
+                    start_time,
+                    end_time,
+                    ai_summary,
+                    confidence,
+                    knowledge_score,
+                    result,
+                    created_at,
+                    interview_artifacts(
+                        id,
+                        interview_id,
+                        conversation,
+                        image_url,
+                        timestamp,
+                        detailed_score,
+                        overall_score,
+                        overall_feedback,
+                        status
+                    )
+                )
             `)
             .eq('job_id', jobId)
             .order('created_at', { ascending: false });
@@ -429,6 +476,9 @@ export class DatabaseService {
 
         return appsWithResumes as (DatabaseApplication & {
             user_resume: DatabaseUserResume[];
+            interviews: (DatabaseInterview & {
+                interview_artifacts: DatabaseInterviewArtifacts[];
+            })[];
         })[];
     }
 
@@ -473,7 +523,29 @@ export class DatabaseService {
                 *,
                 job:jobs(*),
                 candidate:users(*),
-                user_resume(*)
+                user_resume(*),
+                interviews(
+                    id,
+                    application_id,
+                    start_time,
+                    end_time,
+                    ai_summary,
+                    confidence,
+                    knowledge_score,
+                    result,
+                    created_at,
+                    interview_artifacts(
+                        id,
+                        interview_id,
+                        conversation,
+                        image_url,
+                        timestamp,
+                        detailed_score,
+                        overall_score,
+                        overall_feedback,
+                        status
+                    )
+                )
             `);
 
         if (filters.candidateId) {
@@ -492,6 +564,9 @@ export class DatabaseService {
 
         let results = data as (DatabaseApplication & {
             user_resume: DatabaseUserResume[];
+            interviews: (DatabaseInterview & {
+                interview_artifacts: DatabaseInterviewArtifacts[];
+            })[];
         })[];
 
         // Filter by score if provided
@@ -513,14 +588,36 @@ export class DatabaseService {
     // Get all applications for a recruiter (across all their jobs)
     static async getApplicationsForRecruiter(recruiterId: string) {
         try {
-            // Try explicit foreign key approach first
+            // Try explicit foreign key approach first with interview artifacts
             const { data, error } = await supabase
                 .from('applications')
                 .select(`
                     *,
                     candidate:users(*),
                     job:jobs!inner(*),
-                    user_resume!user_resume_application_id_fkey(*)
+                    user_resume!user_resume_application_id_fkey(*),
+                    interviews(
+                        id,
+                        application_id,
+                        start_time,
+                        end_time,
+                        ai_summary,
+                        confidence,
+                        knowledge_score,
+                        result,
+                        created_at,
+                        interview_artifacts(
+                            id,
+                            interview_id,
+                            conversation,
+                            image_url,
+                            timestamp,
+                            detailed_score,
+                            overall_score,
+                            overall_feedback,
+                            status
+                        )
+                    )
                 `)
                 .eq('job.recruiter_id', recruiterId)
                 .order('created_at', { ascending: false });
@@ -530,6 +627,9 @@ export class DatabaseService {
                     user_resume: DatabaseUserResume[];
                     job: DatabaseJob;
                     candidate: DatabaseUser;
+                    interviews: (DatabaseInterview & {
+                        interview_artifacts: DatabaseInterviewArtifacts[];
+                    })[];
                 })[];
             }
         } catch (firstError) {
@@ -552,7 +652,29 @@ export class DatabaseService {
             .select(`
                 *,
                 candidate:users(*),
-                job:jobs(*)
+                job:jobs(*),
+                interviews(
+                    id,
+                    application_id,
+                    start_time,
+                    end_time,
+                    ai_summary,
+                    confidence,
+                    knowledge_score,
+                    result,
+                    created_at,
+                    interview_artifacts(
+                        id,
+                        interview_id,
+                        conversation,
+                        image_url,
+                        timestamp,
+                        detailed_score,
+                        overall_score,
+                        overall_feedback,
+                        status
+                    )
+                )
             `)
             .in('job_id', jobIds)
             .order('created_at', { ascending: false });
@@ -576,6 +698,9 @@ export class DatabaseService {
             user_resume: DatabaseUserResume[];
             job: DatabaseJob;
             candidate: DatabaseUser;
+            interviews: (DatabaseInterview & {
+                interview_artifacts: DatabaseInterviewArtifacts[];
+            })[];
         })[];
     }
 

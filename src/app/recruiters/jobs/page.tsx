@@ -570,9 +570,9 @@ export default function RecruiterJobsPage() {
                                                         <Badge
                                                             variant={job.applications_count > 0 ? "default" : "secondary"}
                                                             className={`${job.applications_count > 0
-                                                                ? 'bg-blue-100 text-blue-800 border-blue-200'
-                                                                : 'bg-gray-100 text-gray-600 border-gray-200'
-                                                                } font-semibold`}
+                                                                ? 'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-100 hover:text-blue-800'
+                                                                : 'bg-gray-100 text-gray-200 border-gray-200 hover:bg-gray-100 hover:text-gray-200'
+                                                                } font-semibold pointer-events-none`}
                                                         >
                                                             {job.applications_count} {job.applications_count === 1 ? 'application' : 'applications'}
                                                         </Badge>
@@ -670,8 +670,8 @@ export default function RecruiterJobsPage() {
                                                             }}
                                                             disabled={job.applications_count === 0}
                                                             className={`flex items-center justify-center space-x-2 ${job.applications_count > 0
-                                                                    ? 'bg-green-500 hover:bg-green-600 text-white border-green-500'
-                                                                    : 'text-gray-500'
+                                                                ? 'bg-green-200 hover:bg-green-400 text-green-800 border-green-500'
+                                                                : 'text-gray-500'
                                                                 }`}
                                                         >
                                                             <Users className="h-4 w-4" />

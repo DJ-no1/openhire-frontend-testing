@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 
 interface NavigationItem {
+    id?: string;
     label: string;
     href: string;
     icon?: React.ReactNode;
@@ -88,9 +89,9 @@ export function AppNavigation({ items, title, subtitle }: AppNavigationProps) {
 
                         {/* Desktop navigation */}
                         <div className="hidden md:flex md:ml-10 md:space-x-8">
-                            {items.map((item) => (
+                            {items.map((item, index) => (
                                 <Link
-                                    key={item.href}
+                                    key={item.id || `nav-${index}-${item.href}`}
                                     href={item.href}
                                     className="flex items-center px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition-colors"
                                 >
@@ -179,9 +180,9 @@ export function AppNavigation({ items, title, subtitle }: AppNavigationProps) {
                 {isMobileMenuOpen && (
                     <div className="md:hidden">
                         <div className="px-2 pt-2 pb-3 space-y-1 border-t border-gray-200 dark:border-gray-700">
-                            {items.map((item) => (
+                            {items.map((item, index) => (
                                 <Link
-                                    key={item.href}
+                                    key={item.id || `mobile-nav-${index}-${item.href}`}
                                     href={item.href}
                                     className="flex items-center px-3 py-2 text-base font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md transition-colors"
                                     onClick={() => setIsMobileMenuOpen(false)}

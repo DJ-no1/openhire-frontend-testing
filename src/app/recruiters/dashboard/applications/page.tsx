@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
-import { DatabaseService, type DatabaseApplication, type DatabaseUserResume, type DatabaseJob, type DatabaseUser } from '@/lib/database';
+import { DatabaseService, type DatabaseApplication, type DatabaseUserResume, type DatabaseJob, type DatabaseUser, type DatabaseInterview, type DatabaseInterviewArtifacts } from '@/lib/database';
 import { jobService } from '@/lib/job-service';
 import { toast } from 'sonner';
 import {
@@ -82,6 +82,9 @@ interface ApplicationWithDetails extends DatabaseApplication {
     user_resume: DatabaseUserResume[];
     job?: DatabaseJob;
     candidate?: DatabaseUser;
+    interviews?: (DatabaseInterview & {
+        interview_artifacts: DatabaseInterviewArtifacts[];
+    })[];
 }
 
 interface JobOption {
@@ -226,22 +229,66 @@ export default function ApplicationsPage() {
     };
 
     const getInterviewStatusBadge = (application: ApplicationWithDetails) => {
-        // This is a placeholder for interview status
-        // You can implement actual interview status logic based on your interview table
-        const hasInterview = Math.random() > 0.5; // Random for demo
+        // Get the latest interview and its artifacts
+        const interviews = application.interviews || [];
 
-        if (hasInterview) {
-            return (
-                <Badge variant="default" className="bg-blue-100 text-blue-800">
-                    In Progress
-                </Badge>
-            );
-        } else {
+        if (interviews.length === 0) {
             return (
                 <Badge variant="secondary">
                     Not Started
                 </Badge>
             );
+        }
+
+        // Get the most recent interview
+        const latestInterview = interviews[0];
+        const artifacts = latestInterview.interview_artifacts || [];
+
+        if (artifacts.length === 0) {
+            return (
+                <Badge variant="outline" className="bg-yellow-100 text-yellow-800">
+                    Interview Started
+                </Badge>
+            );
+        }
+
+        // Get the latest artifact status
+        const latestArtifact = artifacts[0];
+        const status = latestArtifact.status;
+
+        // Map artifact status to appropriate badge
+        switch (status) {
+            case 'completed':
+                return (
+                    <Badge variant="default" className="bg-green-100 text-green-800">
+                        Completed
+                    </Badge>
+                );
+            case 'in_progress':
+            case 'in-progress':
+                return (
+                    <Badge variant="default" className="bg-blue-100 text-blue-800">
+                        In Progress
+                    </Badge>
+                );
+            case 'failed':
+                return (
+                    <Badge variant="destructive">
+                        Failed
+                    </Badge>
+                );
+            case 'pending':
+                return (
+                    <Badge variant="outline" className="bg-yellow-100 text-yellow-800">
+                        Pending Review
+                    </Badge>
+                );
+            default:
+                return (
+                    <Badge variant="secondary">
+                        {status || 'Unknown'}
+                    </Badge>
+                );
         }
     };
 
