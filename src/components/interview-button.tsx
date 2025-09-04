@@ -30,9 +30,10 @@ interface InterviewButtonData {
 interface InterviewButtonProps {
     applicationId: string;
     className?: string;
+    size?: 'sm' | 'md' | 'lg';
 }
 
-export function InterviewButton({ applicationId, className = "" }: InterviewButtonProps) {
+export function InterviewButton({ applicationId, className = "", size = "md" }: InterviewButtonProps) {
     const router = useRouter();
     const [buttonState, setButtonState] = useState<InterviewButtonState>({
         text: "Loading...",
@@ -189,7 +190,7 @@ export function InterviewButton({ applicationId, className = "" }: InterviewButt
         }
 
         const thresholdValue = parseFloat(data.resume_threshold);
-        
+
         // Handle invalid threshold
         if (isNaN(thresholdValue)) {
             return {
@@ -248,7 +249,7 @@ export function InterviewButton({ applicationId, className = "" }: InterviewButt
 
     const handleClick = async () => {
         if (!buttonState.enabled || !buttonState.redirect) return;
-        
+
         setProcessing(true);
         try {
             // Add any pre-navigation logic here if needed
@@ -260,26 +261,50 @@ export function InterviewButton({ applicationId, className = "" }: InterviewButt
         }
     };
 
+    const getSizeClasses = () => {
+        switch (size) {
+            case 'sm':
+                return "px-3 py-1.5 text-xs";
+            case 'lg':
+                return "px-8 py-4 text-base";
+            case 'md':
+            default:
+                return "px-6 py-3 text-sm";
+        }
+    };
+
+    const getIconSize = () => {
+        switch (size) {
+            case 'sm':
+                return "h-3 w-3";
+            case 'lg':
+                return "h-5 w-5";
+            case 'md':
+            default:
+                return "h-4 w-4";
+        }
+    };
+
     const getIcon = () => {
         if (processing || loading) {
-            return <Loader2 className="h-4 w-4 mr-2 animate-spin" />;
+            return <Loader2 className={`${getIconSize()} mr-2 animate-spin`} />;
         }
-        
+
         switch (buttonState.icon) {
             case 'brain':
-                return <Brain className="h-4 w-4 mr-2" />;
+                return <Brain className={`${getIconSize()} mr-2`} />;
             case 'eye':
-                return <Eye className="h-4 w-4 mr-2" />;
+                return <Eye className={`${getIconSize()} mr-2`} />;
             case 'play':
-                return <Play className="h-4 w-4 mr-2" />;
+                return <Play className={`${getIconSize()} mr-2`} />;
             case 'alert':
-                return <AlertCircle className="h-4 w-4 mr-2" />;
+                return <AlertCircle className={`${getIconSize()} mr-2`} />;
             default:
                 return null;
         }
     };
 
-    const baseClasses = "px-6 py-3 rounded-lg font-semibold text-sm transition-all duration-200";
+    const baseClasses = `${getSizeClasses()} rounded-lg font-semibold transition-all duration-200`;
     const hoverClasses = buttonState.enabled ? "hover:opacity-90 hover:scale-105 cursor-pointer" : "cursor-not-allowed";
     const disabledClasses = buttonState.enabled ? "" : "opacity-50";
     const focusClasses = "focus:outline-none focus:ring-2 focus:ring-offset-2";
@@ -289,7 +314,7 @@ export function InterviewButton({ applicationId, className = "" }: InterviewButt
             onClick={handleClick}
             disabled={!buttonState.enabled || processing || loading}
             className={`${baseClasses} ${hoverClasses} ${disabledClasses} ${focusClasses} ${className}`}
-            style={{ 
+            style={{
                 backgroundColor: buttonState.background,
                 color: buttonState.color,
                 border: 'none'

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { InterviewStatusBadge, InterviewStatus } from "@/components/ui/interview-status-badge";
+import { InterviewButton } from "@/components/interview-button";
 import { useAuth } from "@/contexts/AuthContext";
 import {
     Calendar,
@@ -22,7 +23,6 @@ import {
     Briefcase,
     Loader2,
     AlertCircle,
-    Play,
     CheckCircle,
     Users,
     Star,
@@ -107,33 +107,6 @@ export default function InterviewDashboardPage() {
             toast.error(`Failed to load applications: ${errorMessage}`);
         } finally {
             setLoading(false);
-        }
-    };
-
-    const getActionButton = (application: ApplicationWithInterviewData) => {
-        const interviewStatus = application.interview_status || 'no_interview';
-
-        switch (interviewStatus) {
-            case 'eligible_for_interview':
-                return (
-                    <Link href={`/dashboard/application/${application.id}/permission`}>
-                        <Button size="sm">
-                            <Play className="mr-2 h-4 w-4" />
-                            Start Interview
-                        </Button>
-                    </Link>
-                );
-            case 'interview_completed':
-                return (
-                    <Link href={`/dashboard/application/${application.id}/interview-result`}>
-                        <Button variant="outline" size="sm">
-                            <Eye className="mr-2 h-4 w-4" />
-                            View Results
-                        </Button>
-                    </Link>
-                );
-            default:
-                return null;
         }
     };
 
@@ -432,7 +405,10 @@ export default function InterviewDashboardPage() {
                                         </div>
 
                                         <div className="flex items-center gap-2">
-                                            {getActionButton(application)}
+                                            <InterviewButton
+                                                applicationId={application.id}
+                                                size="sm"
+                                            />
 
                                             <Link href={`/dashboard/application/${application.id}/analysis`}>
                                                 <Button variant="outline" size="sm">
