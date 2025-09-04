@@ -546,7 +546,21 @@ export default function InterviewResultPage() {
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => router.back()}
+                                onClick={() => {
+                                    // If previous page is /dashboard/application/[id]/interview, go to analysis, else router.back()
+                                    if (typeof window !== "undefined") {
+                                        const referrer = document.referrer;
+                                        const interviewUrl = `/dashboard/application/${applicationId}/interview`;
+                                        // Check if referrer ends with the interview page
+                                        if (referrer.endsWith(interviewUrl)) {
+                                            router.push(`/dashboard/application/${applicationId}/analysis`);
+                                        } else {
+                                            router.back();
+                                        }
+                                    } else {
+                                        router.back();
+                                    }
+                                }}
                                 className="mr-4"
                             >
                                 <ArrowLeft className="h-4 w-4 mr-2" />
