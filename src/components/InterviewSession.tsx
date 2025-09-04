@@ -7,8 +7,7 @@ import { Textarea } from "./ui/textarea";
 import { PdfUploader } from "./pdf_uploader";
 import { Button } from "./ui/button";
 import { Skeleton } from "./ui/skeleton";
-
-const WS_URL = "ws://localhost:8000/ws/ai-interview";
+import { getAIInterviewWebSocketUrl } from "@/lib/api-config";
 
 type Message = {
     type: string;
@@ -69,7 +68,7 @@ export default function InterviewSession() {
     const ws = useRef<WebSocket | null>(null);
 
     useEffect(() => {
-        ws.current = new window.WebSocket(WS_URL);
+        ws.current = new window.WebSocket(getAIInterviewWebSocketUrl());
         ws.current.onopen = () => setConnected(true);
         ws.current.onclose = () => setConnected(false);
         ws.current.onmessage = (event: MessageEvent) => {

@@ -4,13 +4,12 @@ import React, { useRef, useState, useEffect } from "react";
 import { Card } from "./ui/card";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
+import { getApiUrl } from "@/lib/api-config";
 
 type Message = {
     type: "system" | "human" | "ai";
     content: string;
 };
-
-const API_URL = "http://127.0.0.1:8000/chat";
 
 export default function ChatBox() {
     // Initial system prompt
@@ -40,7 +39,7 @@ export default function ChatBox() {
                 user_input: input,
                 messages: [...messages, userMessage],
             };
-            const res = await fetch(API_URL, {
+            const res = await fetch(getApiUrl('/chat'), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload),
@@ -89,8 +88,8 @@ export default function ChatBox() {
                     >
                         <div
                             className={`rounded-lg px-4 py-2 max-w-[80%] whitespace-pre-line text-sm shadow-sm ${msg.type === "human"
-                                    ? "bg-primary text-primary-foreground"
-                                    : "bg-white text-gray-900 border"
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-white text-gray-900 border"
                                 }`}
                         >
                             {msg.content}

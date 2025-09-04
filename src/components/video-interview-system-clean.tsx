@@ -4,6 +4,7 @@ import React, { useRef, useState, useEffect, useCallback } from "react";
 import { Textarea } from "./ui/textarea";
 import { Button } from "./ui/button";
 import { Mic, MicOff, Play, Square } from "lucide-react";
+import { getInterviewWebSocketUrlWithApp } from "@/lib/api-config";
 
 // Deepgram STT integration
 const DEEPGRAM_API_KEY = process.env.NEXT_PUBLIC_DEEPGRAM_API_KEY;
@@ -94,7 +95,7 @@ export default function VideoInterviewSystem({
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     // WebSocket URL
-    const WS_URL = `ws://localhost:8000/interview/${applicationId}`;
+    const WS_URL = getInterviewWebSocketUrlWithApp(applicationId);
     const safeInput = input || "";
 
     // Initialize Speech Synthesis for TTS
@@ -474,12 +475,12 @@ export default function VideoInterviewSystem({
                         className={`flex ${msg.type === "user" ? "justify-end" : "justify-start"}`}
                     >
                         <div className={`max-w-[85%] p-4 rounded-lg shadow-sm ${msg.type === "user"
-                                ? "bg-blue-500 text-white rounded-br-sm"
-                                : msg.type === "question"
-                                    ? "bg-white text-gray-800 border border-green-200 rounded-bl-sm"
-                                    : msg.type === "error"
-                                        ? "bg-red-50 text-red-800 border border-red-200"
-                                        : "bg-white text-gray-800 border"
+                            ? "bg-blue-500 text-white rounded-br-sm"
+                            : msg.type === "question"
+                                ? "bg-white text-gray-800 border border-green-200 rounded-bl-sm"
+                                : msg.type === "error"
+                                    ? "bg-red-50 text-red-800 border border-red-200"
+                                    : "bg-white text-gray-800 border"
                             }`}>
                             {msg.type === "question" && (
                                 <div className="flex items-center gap-2 font-semibold text-green-700 mb-2 text-sm">
@@ -538,8 +539,8 @@ export default function VideoInterviewSystem({
                             size="icon"
                             onClick={toggleListening}
                             className={`w-12 h-12 rounded-xl transition-all ${isListening
-                                    ? "bg-red-50 border-red-300 text-red-600 hover:bg-red-100"
-                                    : "bg-blue-50 border-blue-300 text-blue-600 hover:bg-blue-100"
+                                ? "bg-red-50 border-red-300 text-red-600 hover:bg-red-100"
+                                : "bg-blue-50 border-blue-300 text-blue-600 hover:bg-blue-100"
                                 }`}
                         >
                             {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}

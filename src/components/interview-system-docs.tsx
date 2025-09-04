@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { isUsingLocalBackend } from "@/lib/api-config";
 import {
     Code,
     MessageSquare,
@@ -118,7 +119,7 @@ export function InterviewSystemDocs() {
         {
             step: 2,
             title: "WebSocket Connection",
-            description: "Establish connection to ws://localhost:8000/ws/interview/{sessionId}"
+            description: `Establish connection to ${isUsingLocalBackend() ? 'ws://localhost:8000' : 'wss://production-server'}/ws/interview/{sessionId}`
         },
         {
             step: 3,
@@ -294,7 +295,7 @@ export function InterviewSystemDocs() {
                             <div>
                                 <h3 className="font-semibold text-sm mb-2">WebSocket URL</h3>
                                 <div className="bg-gray-100 p-3 rounded font-mono text-sm">
-                                    ws://localhost:8000/ws/interview/{"{sessionId}"}
+                                    {isUsingLocalBackend() ? 'ws://localhost:8000' : 'wss://production-server'}/ws/interview/{"{sessionId}"}
                                 </div>
                             </div>
 
@@ -445,14 +446,14 @@ export default function InterviewPage() {
                                 <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
                                     <h3 className="font-semibold text-sm text-yellow-800 mb-2">⚠️ Backend Server Required</h3>
                                     <p className="text-sm text-yellow-700">
-                                        The AI Interview System requires a WebSocket server running on <code>localhost:8000</code> to function properly.
+                                        The AI Interview System requires a WebSocket server running on <code>{isUsingLocalBackend() ? 'localhost:8000' : 'the production server'}</code> to function properly.
                                     </p>
                                 </div>
 
                                 <div className="text-sm space-y-2">
                                     <h3 className="font-semibold">Expected Backend Endpoints:</h3>
                                     <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                                        <li><code>ws://localhost:8000/ws/interview/{"{sessionId}"}</code> - WebSocket endpoint</li>
+                                        <li><code>{isUsingLocalBackend() ? 'ws://localhost:8000' : 'wss://production-server'}/ws/interview/{"{sessionId}"}</code> - WebSocket endpoint</li>
                                         <li>Handle message types: start_interview, candidate_response, end_interview</li>
                                         <li>Send message types: ai_question, live_transcript, end_interview, error</li>
                                     </ul>

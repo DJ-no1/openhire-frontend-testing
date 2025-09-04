@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState, useCallback } from "react";
+import { getWebSocketUrl } from "@/lib/api-config";
 
 interface ChatMessage {
     type: "system" | "human" | "ai";
@@ -16,7 +17,7 @@ interface WSResponse {
 }
 
 export default function WebSocketChatPage() {
-    const wsUrl = "ws://localhost:8000/test/ws/test-chat"; // Change to your backend domain if needed
+    const wsUrl = getWebSocketUrl("/test/ws/test-chat");
     const wsRef = useRef<WebSocket | null>(null);
     const [connected, setConnected] = useState(false);
     const [connecting, setConnecting] = useState(false);

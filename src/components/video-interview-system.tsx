@@ -6,6 +6,7 @@ import { Button } from "./ui/button";
 import { Mic, MicOff, Play, Square } from "lucide-react";
 import { deepgramTTS, type DeepgramVoice } from "@/lib/deepgram-tts";
 import { toast } from "sonner";
+import { getInterviewWebSocketUrlWithApp } from "@/lib/api-config";
 
 // Deepgram STT integration
 const DEEPGRAM_API_KEY = process.env.NEXT_PUBLIC_DEEPGRAM_API_KEY;
@@ -153,7 +154,7 @@ const VideoInterviewSystem = forwardRef<VideoInterviewSystemRef, VideoInterviewS
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     // WebSocket URL
-    const WS_URL = `ws://localhost:8000/interview/${applicationId}`;
+    const WS_URL = getInterviewWebSocketUrlWithApp(applicationId);
     const safeInput = input || "";
 
     // Update parent component when status changes

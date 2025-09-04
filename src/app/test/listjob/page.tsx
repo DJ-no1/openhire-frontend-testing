@@ -7,6 +7,7 @@ import { ResumeUploadAnalyzer } from "@/components/resume-upload-analyzer";
 import { type Job as JobType } from "@/lib/api";
 import { getJobUrl } from "@/lib/job-service";
 import { useAuth } from "@/contexts/AuthContext";
+import { getApiUrl } from "@/lib/api-config";
 
 type Job = {
     id: string;
@@ -40,7 +41,7 @@ export default function ListJobPage() {
             setLoading(true);
             setError(null);
             try {
-                const res = await fetch("http://localhost:8000/jobs", { method: "GET" }); // Use your actual backend URL here
+                const res = await fetch(getApiUrl("/jobs"), { method: "GET" });
                 if (!res.ok) throw new Error("Failed to fetch jobs");
                 const data = await res.json();
                 setJobs(Array.isArray(data) ? data : []);

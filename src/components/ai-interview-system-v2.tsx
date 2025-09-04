@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { Avatar } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { getInterviewWebSocketUrl } from "@/lib/api-config";
 import {
     Mic,
     MicOff,
@@ -204,7 +205,7 @@ export function AIInterviewSystemV2() {
 
         const newSessionId = generateSessionId();
         setSessionId(newSessionId);
-        setWsUrl(`ws://localhost:8000/ws/interview/${newSessionId}`);
+        setWsUrl(getInterviewWebSocketUrl(newSessionId));
 
         // Connect will be triggered by the URL change
         setTimeout(() => {
@@ -495,8 +496,8 @@ function ChatInterface({
 
                                 <div
                                     className={`max-w-[80%] p-3 rounded-lg ${message.type === 'ai'
-                                            ? 'bg-blue-50 text-blue-900 border border-blue-200'
-                                            : 'bg-green-50 text-green-900 border border-green-200'
+                                        ? 'bg-blue-50 text-blue-900 border border-blue-200'
+                                        : 'bg-green-50 text-green-900 border border-green-200'
                                         }`}
                                 >
                                     <p className="text-sm leading-relaxed">{message.content}</p>

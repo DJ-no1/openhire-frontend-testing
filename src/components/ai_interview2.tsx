@@ -6,6 +6,7 @@ import { Card } from "./ui/card";
 import { Textarea } from "./ui/textarea";
 import { Button } from "./ui/button";
 import { Mic, MicOff, Play, Square, Pause } from "lucide-react";
+import { getInterviewWebSocketUrlWithApp } from "@/lib/api-config";
 
 // Deepgram STT integration
 const DEEPGRAM_API_KEY = process.env.NEXT_PUBLIC_DEEPGRAM_API_KEY;
@@ -88,7 +89,7 @@ export default function AIInterviewNew({
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     // WebSocket URL using the passed applicationId
-    const WS_URL = `ws://localhost:8000/interview/${applicationId}`;
+    const WS_URL = getInterviewWebSocketUrlWithApp(applicationId);
 
     // HELPER FUNCTIONS FOR SAFE OPERATIONS
     const safeInput = input || "";
@@ -456,12 +457,12 @@ export default function AIInterviewNew({
                     <div
                         key={i}
                         className={`p-3 rounded-lg ${msg.type === "user"
-                                ? "bg-blue-100 ml-12"
-                                : msg.type === "question"
-                                    ? "bg-green-100"
-                                    : msg.type === "error"
-                                        ? "bg-red-100"
-                                        : "bg-gray-100"
+                            ? "bg-blue-100 ml-12"
+                            : msg.type === "question"
+                                ? "bg-green-100"
+                                : msg.type === "error"
+                                    ? "bg-red-100"
+                                    : "bg-gray-100"
                             }`}
                     >
                         {msg.type === "question" && (

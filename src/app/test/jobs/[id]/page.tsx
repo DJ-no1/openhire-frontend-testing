@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { getApiUrl } from "@/lib/api-config";
 
 export default function JobDetailPage() {
     const { id } = useParams();
@@ -11,12 +12,13 @@ export default function JobDetailPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+
     useEffect(() => {
         async function fetchJob() {
             setLoading(true);
             setError(null);
             try {
-                const res = await fetch(`http://localhost:8000/jobs/${id}`);
+                const res = await fetch(getApiUrl(`/jobs/${id}`));
                 if (!res.ok) throw new Error("Failed to fetch job");
                 const data = await res.json();
                 setJob(data);

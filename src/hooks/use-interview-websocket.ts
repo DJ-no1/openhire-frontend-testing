@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { getInterviewWebSocketUrl } from '@/lib/api-config';
 
 // Message Types from API Documentation
 export interface InterviewMessage {
@@ -118,7 +119,7 @@ export function useInterviewWebSocket(sessionId: string, options: UseInterviewWe
         setConnectionState('connecting');
 
         try {
-            const wsUrl = `ws://localhost:8000/ws/interview/${sessionId}`;
+            const wsUrl = getInterviewWebSocketUrl(sessionId);
             console.log('Attempting to connect to:', wsUrl);
             const ws = new WebSocket(wsUrl);
 

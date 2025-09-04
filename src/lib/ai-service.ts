@@ -1,5 +1,6 @@
 // AI Service for Job Description Generation
 import { JobDescription } from './job-service';
+import { getApiBaseUrl } from './api-config';
 
 export interface GenerateDescriptionRequest {
     title: string;
@@ -22,7 +23,7 @@ export interface GenerateDescriptionResponse {
 }
 
 class AIService {
-    private baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    private baseUrl = getApiBaseUrl();
 
     async generateJobDescription(request: GenerateDescriptionRequest): Promise<GenerateDescriptionResponse> {
         try {

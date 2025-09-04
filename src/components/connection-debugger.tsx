@@ -8,6 +8,7 @@ import { CheckCircle2, AlertCircle, Loader2, Wifi, Database, Code } from "lucide
 import { toast } from "sonner";
 import { DatabaseService } from "@/lib/database";
 import { supabase } from "@/lib/supabaseClient";
+import { getApiUrl, getWebSocketUrl, isUsingLocalBackend } from "@/lib/api-config";
 
 export function ConnectionDebugger() {
     const [testing, setTesting] = useState(false);
@@ -48,10 +49,11 @@ export function ConnectionDebugger() {
 
         // Test HTTP connection
         try {
-            details.push('🔄 Testing HTTP connection to localhost:8000...');
+            const backendInfo = isUsingLocalBackend() ? 'localhost:8000' : 'production backend';
+            details.push(`🔄 Testing HTTP connection to ${backendInfo}...`);
 
             // Try the root endpoint first to get backend info
-            const rootResponse = await fetch('http://localhost:8000/', {
+            const rootResponse = await fetch(getApiUrl('/'), {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -64,7 +66,7 @@ export function ConnectionDebugger() {
                 details.push(`📋 Backend: ${rootData.message || 'OpenHire Backend'}`);
 
                 // Test jobs endpoint
-                const jobsResponse = await fetch('http://localhost:8000/jobs');
+                const jobsResponse = await fetch(getApiUrl('/jobs'));
                 if (jobsResponse.ok) {
                     const jobs = await jobsResponse.json();
                     details.push(`✅ Jobs endpoint working (${jobs.length} jobs available)`);
@@ -87,7 +89,7 @@ export function ConnectionDebugger() {
             details.push('🔄 Testing WebSocket connection...');
 
             const testSessionId = `debug_${Date.now()}`;
-            const ws = new WebSocket(`ws://localhost:8000/ws/interview/${testSessionId}`);
+            const ws = new WebSocket(getWebSocketUrl(`/ws/interview/${testSessionId}`));
 
             ws.onopen = () => {
                 details.push('✅ WebSocket connection successful');
@@ -310,10 +312,10 @@ export function ConnectionDebugger() {
                     <div className="bg-blue-50 rounded-lg p-4">
                         <h4 className="font-medium mb-2">Backend Requirements:</h4>
                         <ul className="text-sm space-y-1">
-                            <li>• Backend server running on <code>localhost:8000</code></li>
+                            <li>• Backend server running on <code>{isUsingLocalBackend() ? 'localhost:8000' : 'production server'}</code></li>
                             <li>• Health endpoint available at <code>/health</code></li>
                             <li>• WebSocket endpoint at <code>/ws/interview/&#123;session_id&#125;</code></li>
-                            <li>• CORS properly configured for localhost:3000</li>
+                            <li>• CORS properly configured for {isUsingLocalBackend() ? 'localhost:3000' : 'production frontend'}</li>
                         </ul>
                     </div>
 
@@ -322,8 +324,8 @@ export function ConnectionDebugger() {
                             <h4 className="font-medium text-red-800 mb-2">Troubleshooting:</h4>
                             <ul className="text-sm text-red-700 space-y-1">
                                 <li>1. Make sure your AI backend server is running</li>
-                                <li>2. Check if port 8000 is not blocked by firewall</li>
-                                <li>3. Verify the backend is listening on localhost:8000</li>
+                                <li>2. Check if port {isUsingLocalBackend() ? '8000' : 'HTTPS'} is not blocked by firewall</li>
+                                <li>3. Verify the backend is listening on {isUsingLocalBackend() ? 'localhost:8000' : 'the production server'}</li>
                                 <li>4. Check backend logs for any startup errors</li>
                             </ul>
                         </div>

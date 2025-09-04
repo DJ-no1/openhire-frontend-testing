@@ -4,6 +4,7 @@ import { Card } from "./ui/card";
 import { Textarea } from "./ui/textarea";
 import { Button } from "./ui/button";
 import { Mic, MicOff, Play, Square, Pause } from "lucide-react";
+import { getInterviewWebSocketUrlWithApp } from "@/lib/api-config";
 
 // Deepgram STT integration
 const DEEPGRAM_API_KEY = process.env.NEXT_PUBLIC_DEEPGRAM_API_KEY;
@@ -51,7 +52,7 @@ type FinalAssessment = {
 };
 
 const APPLICATION_ID = "4cc1f02d-2c2f-441e-9a90-ccfda8be4ab4";
-const WS_URL = `ws://localhost:8000/interview/${APPLICATION_ID}`;
+const WS_URL = getInterviewWebSocketUrlWithApp(APPLICATION_ID);
 
 export default function AIInterview() {
     // ALL STATE DECLARATIONS FIRST
@@ -66,7 +67,7 @@ export default function AIInterview() {
     const [finalAssessment, setFinalAssessment] = useState<FinalAssessment | null>(null);
     const [isListening, setIsListening] = useState(false);
     const [recognition, setRecognition] = useState<any | null>(null);
-    
+
     // Deepgram state
     const [dgSocket, setDgSocket] = useState<WebSocket | null>(null);
     const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
@@ -78,7 +79,7 @@ export default function AIInterview() {
 
     // HELPER FUNCTIONS FOR SAFE OPERATIONS
     const safeInput = input || ""; // Fallback to empty string if input is undefined/null
-    
+
     // CALLBACK FUNCTIONS
     const addMessage = useCallback((type: InterviewMessage["type"], content: string, extra?: Partial<InterviewMessage>) => {
         setMessages(prev => [...prev, {
@@ -136,12 +137,12 @@ export default function AIInterview() {
 
     const connectToInterview = useCallback(() => {
         if (connectionStatus === "connected" || connectionStatus === "connecting") return;
-        
+
         setConnectionStatus("connecting");
         addMessage("system", "Connecting to AI Interview System...");
-        
+
         const websocket = new WebSocket(WS_URL);
-        
+
         websocket.onopen = () => {
             setConnectionStatus("connected");
             addMessage("system", "Connected! Starting interview...");
@@ -175,7 +176,7 @@ export default function AIInterview() {
         // Safe check with fallback
         const inputValue = input || "";
         if (!inputValue.trim() || !ws || ws.readyState !== WebSocket.OPEN) return;
-        
+
         ws.send(JSON.stringify({
             type: "submit_answer",
             payload: { answer: inputValue }
@@ -187,7 +188,7 @@ export default function AIInterview() {
 
     const endInterview = useCallback(() => {
         if (!ws || ws.readyState !== WebSocket.OPEN) return;
-        
+
         ws.send(JSON.stringify({
             type: "submit_answer",
             payload: { answer: "end" }
@@ -199,7 +200,7 @@ export default function AIInterview() {
 
     const pauseInterview = useCallback(() => {
         if (!ws || ws.readyState !== WebSocket.OPEN) return;
-        
+
         ws.send(JSON.stringify({
             type: "pause_interview",
             payload: {}
@@ -208,7 +209,7 @@ export default function AIInterview() {
 
     const resumeInterview = useCallback(() => {
         if (!ws || ws.readyState !== WebSocket.OPEN) return;
-        
+
         ws.send(JSON.stringify({
             type: "resume_interview",
             payload: {}
@@ -220,7 +221,7 @@ export default function AIInterview() {
             addMessage("error", "Speech recognition not supported in this browser");
             return;
         }
-        
+
         if (isListening) {
             recognition.stop();
             setIsListening(false);
@@ -236,11 +237,11 @@ export default function AIInterview() {
         if (typeof window !== "undefined" && ("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
             const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
             const recognitionInstance = new SpeechRecognition();
-            
+
             recognitionInstance.continuous = true;
             recognitionInstance.interimResults = true;
             recognitionInstance.lang = "en-US";
-            
+
             recognitionInstance.onresult = (event: any) => {
                 const results = Array.from(event.results);
                 const transcript = results
@@ -248,16 +249,16 @@ export default function AIInterview() {
                     .join("");
                 setInput(transcript || ""); // Ensure we always set a string
             };
-            
+
             recognitionInstance.onerror = (event: any) => {
                 console.error("Speech recognition error:", event.error);
                 setIsListening(false);
             };
-            
+
             recognitionInstance.onend = () => {
                 setIsListening(false);
             };
-            
+
             setRecognition(recognitionInstance);
         }
     }, []);
@@ -282,9 +283,9 @@ export default function AIInterview() {
 
         // Start Deepgram WebSocket
         const socket = new WebSocket(
-                    // Upgrade to Nova-3 (latest and best)
+            // Upgrade to Nova-3 (latest and best)
             `wss://api.deepgram.com/v1/listen?model=nova-2&punctuate=true&language=en-US&encoding=linear16&sample_rate=16000`
-,
+            ,
             ["token", DEEPGRAM_API_KEY]
         );
         setDgSocket(socket);
@@ -376,13 +377,12 @@ export default function AIInterview() {
             <div className="p-4 border-b bg-background">
                 <div className="flex items-center justify-between mb-2">
                     <h2 className="text-xl font-semibold">AI Interview System</h2>
-                    <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        connectionStatus === "connected" ? "bg-green-100 text-green-800" :
-                        connectionStatus === "connecting" ? "bg-yellow-100 text-yellow-800" :
-                        connectionStatus === "paused" ? "bg-orange-100 text-orange-800" :
-                        connectionStatus === "completed" ? "bg-blue-100 text-blue-800" :
-                        "bg-gray-100 text-gray-800"
-                    }`}>
+                    <div className={`px-3 py-1 rounded-full text-sm font-medium ${connectionStatus === "connected" ? "bg-green-100 text-green-800" :
+                            connectionStatus === "connecting" ? "bg-yellow-100 text-yellow-800" :
+                                connectionStatus === "paused" ? "bg-orange-100 text-orange-800" :
+                                    connectionStatus === "completed" ? "bg-blue-100 text-blue-800" :
+                                        "bg-gray-100 text-gray-800"
+                        }`}>
                         {connectionStatus.charAt(0).toUpperCase() + connectionStatus.slice(1)}
                     </div>
                 </div>
@@ -443,12 +443,11 @@ export default function AIInterview() {
                 )}
                 {messages.map((msg, i) => (
                     <div key={i} className={`flex ${msg.type === "user" ? "justify-end" : "justify-start"}`}>
-                        <div className={`rounded-lg px-4 py-3 max-w-[85%] shadow-sm ${
-                            msg.type === "user" ? "bg-blue-600 text-white" :
-                            msg.type === "question" ? "bg-white text-gray-900 border-l-4 border-blue-500" :
-                            msg.type === "error" ? "bg-red-100 text-red-800 border border-red-200" :
-                            "bg-white text-gray-700 border"
-                        }`}>
+                        <div className={`rounded-lg px-4 py-3 max-w-[85%] shadow-sm ${msg.type === "user" ? "bg-blue-600 text-white" :
+                                msg.type === "question" ? "bg-white text-gray-900 border-l-4 border-blue-500" :
+                                    msg.type === "error" ? "bg-red-100 text-red-800 border border-red-200" :
+                                        "bg-white text-gray-700 border"
+                            }`}>
                             {msg.type === "question" && (
                                 <div className="text-xs text-gray-500 mb-1">
                                     Question {msg.questionNumber} {msg.questionType && `(${msg.questionType})`}

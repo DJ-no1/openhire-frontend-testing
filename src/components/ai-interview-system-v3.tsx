@@ -34,6 +34,7 @@ import {
 import { toast } from "sonner";
 import { useInterviewWebSocket } from "@/hooks/use-interview-websocket";
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
+import { getApiUrl, isUsingLocalBackend } from "@/lib/api-config";
 
 // Types based on API Documentation
 interface ChatMessage {
@@ -94,7 +95,7 @@ export function AIInterviewSystemV3() {
     // Test backend connection
     const testConnection = async () => {
         try {
-            const response = await fetch('http://localhost:8000/health', {
+            const response = await fetch(getApiUrl('/health'), {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -107,7 +108,8 @@ export function AIInterviewSystemV3() {
                 toast.error('❌ Backend responded but with an error');
             }
         } catch (error) {
-            toast.error('❌ Cannot reach backend on localhost:8000. Please start your AI backend server.');
+            const backendInfo = isUsingLocalBackend() ? 'localhost:8000' : 'production backend';
+            toast.error(`❌ Cannot reach backend on ${backendInfo}. Please check your backend server.`);
         }
     };
 
@@ -235,7 +237,8 @@ export function AIInterviewSystemV3() {
 
         onConnectionError: () => {
             console.error('WebSocket connection error');
-            toast.error('Cannot connect to AI backend. Please ensure it is running on localhost:8000');
+            const backendInfo = isUsingLocalBackend() ? 'localhost:8000' : 'production backend';
+            toast.error(`Cannot connect to AI backend. Please ensure it is running on ${backendInfo}`);
             // Reset to setup if connection fails
             setTimeout(() => {
                 setPhase('setup');
@@ -356,7 +359,8 @@ export function AIInterviewSystemV3() {
                         toast.error('Failed to start interview. Please check your connection.');
                     }
                 } else if (connectionState === 'error') {
-                    toast.error('Unable to connect to backend. Please ensure your AI backend is running on localhost:8000');
+                    const backendInfo = isUsingLocalBackend() ? 'localhost:8000' : 'production backend';
+                    toast.error(`Unable to connect to backend. Please ensure your AI backend is running on ${backendInfo}`);
                     setPhase('setup');
                     setShowSetup(true);
                 } else {
@@ -592,7 +596,7 @@ export function AIInterviewSystemV3() {
                                     </span>
                                 )}
                                 <p className="text-xs text-gray-500">
-                                    ⚠️ Make sure your backend AI agent is running on localhost:8000
+                                    ⚠️ Make sure your backend AI agent is running on {isUsingLocalBackend() ? 'localhost:8000' : 'the production server'}
                                 </p>
                                 <Button
                                     variant="outline"
@@ -766,7 +770,7 @@ export function AIInterviewSystemV3() {
                                                 <p className="text-xs text-gray-400">
                                                     {connectionState === 'error' ? (
                                                         <span className="text-red-500">
-                                                            ❌ Connection failed. Check if backend is running on localhost:8000
+                                                            ❌ Connection failed. Check if backend is running on {isUsingLocalBackend() ? 'localhost:8000' : 'the production server'}
                                                         </span>
                                                     ) : (
                                                         `Status: ${connectionState}`
@@ -803,8 +807,8 @@ export function AIInterviewSystemV3() {
                                             </Avatar>
                                             <div
                                                 className={`max-w-[80%] rounded-lg p-3 ${message.type === 'ai'
-                                                        ? 'bg-gray-100 text-gray-900'
-                                                        : 'bg-blue-600 text-white'
+                                                    ? 'bg-gray-100 text-gray-900'
+                                                    : 'bg-blue-600 text-white'
                                                     }`}
                                             >
                                                 <p className="text-sm">{message.content}</p>

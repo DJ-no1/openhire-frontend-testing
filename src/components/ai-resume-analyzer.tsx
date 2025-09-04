@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Upload, FileText, AlertTriangle, CheckCircle, TrendingUp, Brain, BarChart3 } from "lucide-react"
 import { toast } from "sonner"
+import { getApiUrl } from "@/lib/api-config";
 
 interface Job {
     id: string;
@@ -67,7 +68,7 @@ export function AIResumeAnalyzer({ onAnalysisComplete, className }: AIResumeAnal
 
     const fetchJobs = async () => {
         try {
-            const response = await fetch('http://localhost:8000/jobs');
+            const response = await fetch(getApiUrl('/jobs'));
             if (response.ok) {
                 const jobsData = await response.json();
                 setJobs(jobsData);
@@ -112,7 +113,7 @@ export function AIResumeAnalyzer({ onAnalysisComplete, className }: AIResumeAnal
             formData.append('job_id', selectedJobId);
             formData.append('file', selectedFile);
 
-            const response = await fetch('http://localhost:8000/review-resume', {
+            const response = await fetch(getApiUrl('/review-resume'), {
                 method: 'POST',
                 body: formData,
             });

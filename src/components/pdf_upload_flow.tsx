@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { PdfUploader } from "@/components/pdf_uploader";
 import { useRouter } from "next/navigation";
+import { getApiUrl } from "@/lib/api-config";
 
 export const PdfUploadFlow: React.FC = () => {
     const router = useRouter();
@@ -28,7 +29,7 @@ export const PdfUploadFlow: React.FC = () => {
             const data = await res.json();
             if (res.ok && data.text) {
                 setExtractedText(data.text);
-                const reviewRes = await fetch("http://127.0.0.1:8000/review-resume", {
+                const reviewRes = await fetch(getApiUrl("/review-resume"), {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",

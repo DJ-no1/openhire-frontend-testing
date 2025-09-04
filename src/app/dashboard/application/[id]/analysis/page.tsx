@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { DatabaseService, type DatabaseApplication, type DatabaseUserResume } from "@/lib/database";
 import { ResumeAnalysisResults } from "@/components/resume-analysis-results";
 import { CandidateApplicationsList } from "@/components/candidate-applications-list";
+import { InterviewButton } from "@/components/interview-button";
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthLoading } from '@/hooks/useAuthLoading';
@@ -46,7 +47,6 @@ export default function ApplicationAnalysisPage() {
     const [analysisData, setAnalysisData] = useState<ReviewResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [checkingInterview, setCheckingInterview] = useState(false);
 
     if (authLoading) {
         return <ApplicationSkeleton />;
@@ -126,66 +126,6 @@ export default function ApplicationAnalysisPage() {
             setAnalysisData(null);
             setError(null);
             fetchApplicationData(id as string);
-        }
-    };
-
-    const handleStartInterview = async () => {
-        if (!application) return;
-        setCheckingInterview(true);
-
-        try {
-            const { data: appData, error: appError } = await supabase
-                .from('applications')
-                .select('interview_artifact_id')
-                .eq('id', application.id)
-                .single();
-
-            if (appError || !appData?.interview_artifact_id) {
-                router.push(`/dashboard/application/${application.id}/permission`);
-                return;
-            }
-
-            const interviewArtifactIds = appData.interview_artifact_id.split(',').map((id: string) => id.trim());
-            const interviewArtifactId = interviewArtifactIds[interviewArtifactIds.length - 1];
-
-            const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-            if (!uuidRegex.test(interviewArtifactId)) {
-                toast.error(`Invalid interview data format. Starting new interview...`);
-                router.push(`/dashboard/application/${application.id}/permission`);
-                return;
-            }
-
-            const { data: artifact, error: artifactError } = await supabase
-                .from('interview_artifacts')
-                .select('id, status')
-                .eq('id', interviewArtifactId)
-                .single();
-
-            if (artifactError || !artifact) {
-                const proceed = window.confirm('Issue with interview data. Start new interview?');
-                if (proceed) {
-                    router.push(`/dashboard/application/${application.id}/permission`);
-                }
-                return;
-            }
-
-            if (artifact.status === 'completed') {
-                toast.info('Interview completed. Redirecting to results...');
-                router.push(`/dashboard/application/${application.id}/interview-result`);
-                return;
-            }
-
-            if (artifact.status === 'in_progress') {
-                const resumeInterview = window.confirm('Resume interview? Cancel to view results.');
-                router.push(`/dashboard/application/${application.id}/${resumeInterview ? 'interview' : 'interview-result'}`);
-                return;
-            }
-
-            router.push(`/dashboard/application/${application.id}/permission`);
-        } catch (error) {
-            toast.error('Error checking interview status. Please try again.');
-        } finally {
-            setCheckingInterview(false);
         }
     };
 
@@ -293,100 +233,6 @@ export default function ApplicationAnalysisPage() {
             </header>
 
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="bg-white rounded-lg shadow-lg p-8 mb-8">
-                    <div className="text-center">
-                        <h2 className="text-3xl font-bold text-gray-900 mb-4">AI-Powered Resume Analysis</h2>
-                        <p className="text-lg text-gray-600 mb-6">Comprehensive compatibility assessment for {application.job?.title || "Unknown Position"}</p>
-                        {resume?.score && (
-                            <div className="inline-flex items-center gap-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-full px-8 py-4 border border-blue-200">
-                                <TrendingUp className="h-8 w-8 text-blue-600" />
-                                <div className="text-left">
-                                    <div className="text-3xl font-bold text-gray-900">{resume.score}%</div>
-                                    <div className="text-sm text-gray-600">Overall Match Score</div>
-                                </div>
-                            </div>
-                        )}
-                        <div className="mt-8">
-                            <Button
-                                onClick={handleStartInterview}
-                                size="lg"
-                                className="px-8 py-3 text-lg font-semibold bg-green-600 hover:bg-green-700 text-white"
-                                disabled={checkingInterview}
-                            >
-                                {checkingInterview ? (
-                                    <>
-                                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                                        Checking...
-                                    </>
-                                ) : (
-                                    <>
-                                        <User className="w-5 h-5 mr-2" />
-                                        Start Interview
-                                    </>
-                                )}
-                            </Button>
-                            <p className="text-sm text-gray-500 mt-2">Begin the AI-powered interview process for this candidate</p>
-                        </div>
-                    </div>
-                </div>
-
-                <Card className="shadow-lg mb-8">
-                    <CardHeader className="bg-gradient-to-r from-gray-50 to-blue-50">
-                        <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                                <CardTitle className="text-2xl text-gray-900 mb-3">{application.job?.title || "Unknown Position"}</CardTitle>
-                                <div className="flex flex-wrap items-center gap-4 text-muted-foreground">
-                                    <div className="flex items-center gap-2">
-                                        <Building className="h-4 w-4 text-blue-600" />
-                                        <span className="font-medium">{application.job?.job_type || "Full-time"}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <MapPin className="h-4 w-4 text-green-600" />
-                                        <span>Remote</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <Briefcase className="h-4 w-4 text-purple-600" />
-                                        <span>{application.job?.job_type || "Not specified"}</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <Badge variant="outline" className={`text-sm px-3 py-1 ${getApplicationStatusColor(application.status)}`}>
-                                {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
-                            </Badge>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="pt-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg">
-                                <div className="p-2 bg-blue-100 rounded-full">
-                                    <Calendar className="h-5 w-5 text-blue-600" />
-                                </div>
-                                <div>
-                                    <p className="font-medium text-gray-900">Applied Date</p>
-                                    <p className="text-sm text-gray-600">{formatDate(application.created_at)}</p>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-3 p-4 bg-green-50 rounded-lg">
-                                <div className="p-2 bg-green-100 rounded-full">
-                                    <FileText className="h-5 w-5 text-green-600" />
-                                </div>
-                                <div>
-                                    <p className="font-medium text-gray-900">Resume Status</p>
-                                    <p className="text-sm text-gray-600">Analyzed</p>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-3 p-4 bg-purple-50 rounded-lg">
-                                <div className="p-2 bg-purple-100 rounded-full">
-                                    <TrendingUp className="h-5 w-5 text-purple-600" />
-                                </div>
-                                <div>
-                                    <p className="font-medium text-gray-900">Match Score</p>
-                                    <p className="text-sm text-gray-600">{resume?.score || 0}%</p>
-                                </div>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
 
                 <Card className="shadow-lg border-l-4 border-l-blue-500 mb-8">
                     <CardHeader className="pb-4">
@@ -398,26 +244,13 @@ export default function ApplicationAnalysisPage() {
                     <CardContent>
                         <div className="flex items-center justify-between">
                             <div>
-                                <h3 className="font-semibold text-gray-900 mb-1">Ready for AI Interview</h3>
-                                <p className="text-sm text-gray-600 mb-3">Start a comprehensive AI-powered interview to evaluate this candidate's skills and fit.</p>
+                                <h3 className="font-semibold text-gray-900 mb-1">AI Interview Assessment</h3>
+                                <p className="text-sm text-gray-600 mb-3">Comprehensive AI-powered interview based on resume score and job requirements.</p>
                             </div>
-                            <Button
-                                onClick={handleStartInterview}
-                                disabled={checkingInterview}
-                                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2"
-                            >
-                                {checkingInterview ? (
-                                    <>
-                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                        Checking...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Brain className="h-4 w-4 mr-2" />
-                                        Start Interview
-                                    </>
-                                )}
-                            </Button>
+                            <InterviewButton 
+                                applicationId={application.id}
+                                className="shrink-0"
+                            />
                         </div>
                     </CardContent>
                 </Card>

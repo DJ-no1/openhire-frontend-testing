@@ -1,25 +1,18 @@
-// API Configuration for OpenHire Backend
-export const API_CONFIG = {
-    BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
-    ENDPOINTS: {
-        JOBS: '/jobs',
-        REVIEW_RESUME: '/review-resume',
-        REVIEW_BY_ID: (id: string) => `/review-resume/${id}`,
-    },
-    TIMEOUTS: {
-        UPLOAD: 60000, // 60 seconds for file upload and analysis
-        FETCH: 10000,  // 10 seconds for regular API calls
-    },
-    FILE_TYPES: {
-        ALLOWED: ['.pdf', '.docx', '.doc', '.txt'],
-        MAX_SIZE: 10 * 1024 * 1024, // 10MB
-    }
-};
+// Re-export from the centralized API configuration
+export {
+    getApiUrl,
+    getApiBaseUrl,
+    getWebSocketUrl,
+    getWebSocketBaseUrl,
+    getInterviewWebSocketUrl,
+    getAIInterviewWebSocketUrl,
+    getInterviewWebSocketUrlWithApp,
+    isDevelopment,
+    isUsingLocalBackend
+} from './api-config';
 
-// Helper function to get full API URL
-export const getApiUrl = (endpoint: string) => {
-    return `${API_CONFIG.BASE_URL}${endpoint}`;
-};
+import { API_CONFIG as _API_CONFIG } from './api-config';
+export const API_CONFIG = _API_CONFIG;
 
 // Helper function to create FormData for resume upload
 export const createResumeFormData = (jobId: string, file: File) => {
