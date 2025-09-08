@@ -48,54 +48,100 @@ export function InterviewChatTab({ artifact, applicationDetails }: InterviewChat
 
     // Extract conversation data - use correct field name from database
     const conversationLog = useMemo(() => {
-        return artifact?.conversation || artifact?.conversation_log || [];
+        // Try to get conversation from database - updated to match new structure
+        if (artifact?.conversation && Array.isArray(artifact.conversation)) {
+            return artifact.conversation;
+        }
+        if (artifact?.conversation_log && Array.isArray(artifact.conversation_log)) {
+            return artifact.conversation_log;
+        }
+        return [];
     }, [artifact?.conversation, artifact?.conversation_log]);
 
-    // Process conversation into structured messages - memoized to prevent infinite loops
+    // Process conversation into structured messages - updated for new database structure
     const processedMessages = useMemo((): ChatMessage[] => {
         if (!conversationLog || conversationLog.length === 0) return [];
 
-        return conversationLog.map((item: any, index: number) => {
-            if (typeof item === 'string') {
-                // Handle simple string format
+        const messages: ChatMessage[] = [];
+
+        conversationLog.forEach((item: any, index: number) => {
+            // Handle new structured conversation format from database
+            if (item && typeof item === 'object' && item.question) {
+                // AI Question
+                messages.push({
+                    id: `ai_${index}`,
+                    type: 'ai',
+                    content: item.question,
+                    timestamp: item.timestamp || new Date(Date.now() - (conversationLog.length - index) * 60000).toISOString(),
+                    metadata: {
+                        questionType: item.question_type || 'general',
+                        responseTime: 0,
+                        confidence: 95
+                    }
+                });
+
+                // User Answer
+                if (item.answer) {
+                    messages.push({
+                        id: `human_${index}`,
+                        type: 'human',
+                        content: item.answer,
+                        timestamp: item.timestamp || new Date(Date.now() - (conversationLog.length - index) * 60000 + 30000).toISOString(),
+                        metadata: {
+                            questionType: 'answer',
+                            responseTime: 30, // Default response time
+                            confidence: item.engagement_score ? Math.round(item.engagement_score * 20) : 75 // Convert 0-5 to 0-100
+                        }
+                    });
+                }
+
+                // Clarification if different from answer
+                if (item.clarification && item.clarification !== item.answer) {
+                    // AI Clarification Question
+                    messages.push({
+                        id: `ai_clarify_${index}`,
+                        type: 'ai',
+                        content: 'Could you clarify what you meant?',
+                        timestamp: item.timestamp || new Date(Date.now() - (conversationLog.length - index) * 60000 + 60000).toISOString(),
+                        metadata: {
+                            questionType: 'clarification',
+                            responseTime: 0,
+                            confidence: 92
+                        }
+                    });
+
+                    // User Clarification Answer
+                    messages.push({
+                        id: `human_clarify_${index}`,
+                        type: 'human',
+                        content: item.clarification,
+                        timestamp: item.timestamp || new Date(Date.now() - (conversationLog.length - index) * 60000 + 90000).toISOString(),
+                        metadata: {
+                            questionType: 'clarification_answer',
+                            responseTime: 25,
+                            confidence: item.engagement_score ? Math.round(item.engagement_score * 20) : 75
+                        }
+                    });
+                }
+            }
+            // Fallback for old string format or malformed data
+            else if (typeof item === 'string') {
                 const isAI = item.toLowerCase().includes('ai:') || item.toLowerCase().includes('assistant:');
-                return {
+                messages.push({
                     id: `msg_${index}`,
                     type: isAI ? 'ai' : 'human',
                     content: item.replace(/^(AI:|Assistant:|Human:|Candidate:)\s*/i, ''),
                     timestamp: new Date(Date.now() - (conversationLog.length - index) * 60000).toISOString(),
                     metadata: {
                         questionType: isAI ? 'question' : 'answer',
-                        responseTime: Math.floor(Math.random() * 30 + 10), // Mock response time
-                        confidence: Math.floor(Math.random() * 30 + 70) // Mock confidence
+                        responseTime: isAI ? 0 : Math.floor(Math.random() * 30 + 10),
+                        confidence: Math.floor(Math.random() * 30 + 70)
                     }
-                };
-            } else if (typeof item === 'object' && item !== null) {
-                // Handle structured object format
-                return {
-                    id: item.id || `msg_${index}`,
-                    type: item.sender?.toLowerCase() === 'ai' || item.type === 'ai' ? 'ai' : 'human',
-                    content: item.message || item.content || '',
-                    timestamp: item.timestamp || new Date(Date.now() - (conversationLog.length - index) * 60000).toISOString(),
-                    metadata: {
-                        questionType: item.questionType || (item.sender === 'ai' ? 'question' : 'answer'),
-                        responseTime: item.responseTime || Math.floor(Math.random() * 30 + 10),
-                        confidence: item.confidence || Math.floor(Math.random() * 30 + 70)
-                    }
-                };
+                });
             }
-            return {
-                id: `msg_${index}`,
-                type: 'human',
-                content: String(item),
-                timestamp: new Date(Date.now() - (conversationLog.length - index) * 60000).toISOString(),
-                metadata: {
-                    questionType: 'answer',
-                    responseTime: Math.floor(Math.random() * 30 + 10),
-                    confidence: Math.floor(Math.random() * 30 + 70)
-                }
-            };
         });
+
+        return messages;
     }, [conversationLog]);
 
     // Create mock conversation - memoized
@@ -324,29 +370,33 @@ export function InterviewChatTab({ artifact, applicationDetails }: InterviewChat
                         </Button>
                     </div>
 
-                    {/* Conversation Display */}
+                    {/* Conversation Display - Modern Chat Style */}
                     <ScrollArea className="h-[600px] w-full border rounded-lg p-4">
-                        <div className="space-y-4">
+                        <div className="space-y-3">
                             {filteredMessages.map((message, index) => (
                                 <div key={message.id} className={`flex ${message.type === 'ai' ? 'justify-start' : 'justify-end'}`}>
-                                    <div className={`max-w-[80%] ${message.type === 'ai' ? 'bg-blue-50 border-blue-200' : 'bg-green-50 border-green-200'} border rounded-lg p-4`}>
+                                    <div className={`max-w-[75%] rounded-2xl p-4 shadow-sm ${message.type === 'ai'
+                                            ? 'bg-blue-50 border border-blue-200'
+                                            : 'bg-green-50 border border-green-200'
+                                        }`}>
                                         <div className="flex items-center gap-2 mb-2">
                                             {message.type === 'ai' ? (
                                                 <Bot className="h-4 w-4 text-blue-600" />
                                             ) : (
                                                 <User className="h-4 w-4 text-green-600" />
                                             )}
-                                            <span className={`text-sm font-medium ${message.type === 'ai' ? 'text-blue-700' : 'text-green-700'}`}>
+                                            <span className={`text-sm font-medium ${message.type === 'ai' ? 'text-blue-700' : 'text-green-700'
+                                                }`}>
                                                 {message.type === 'ai' ? 'AI Interviewer' : applicationDetails?.candidate_name || 'Candidate'}
                                             </span>
                                             <span className="text-xs text-gray-500 ml-auto">
                                                 {formatTime(message.timestamp)}
                                             </span>
                                         </div>
-                                        <p className="text-gray-800 leading-relaxed">{message.content}</p>
+                                        <p className="text-gray-800 leading-relaxed text-sm">{message.content}</p>
 
                                         {/* Message Metadata */}
-                                        <div className="flex items-center gap-4 mt-3 pt-3 border-t border-gray-200">
+                                        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-200">
                                             {message.metadata?.questionType && (
                                                 <Badge variant="outline" className="text-xs">
                                                     {message.metadata.questionType}

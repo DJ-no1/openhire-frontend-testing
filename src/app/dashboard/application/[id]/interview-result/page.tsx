@@ -47,6 +47,7 @@ interface InterviewArtifact {
     answered_questions: number;
     ai_assessment: AssessmentData;
     conversation_log: any[];
+    conversation?: any[]; // Add the raw conversation field from database
     performance_metrics: any;
     created_at: string;
     updated_at: string;
@@ -256,6 +257,7 @@ export default function InterviewResultPage() {
 
                         // Recommendation
                         overall_recommendation: artifact.detailed_score.final_recommendation || 'no_data',
+                        final_recommendation: artifact.detailed_score.final_recommendation || 'no_data',
 
                         // Industry type
                         industry_type: artifact.detailed_score.industry_type || 'Unknown',
@@ -279,15 +281,38 @@ export default function InterviewResultPage() {
                 if (artifact.conversation && Array.isArray(artifact.conversation)) {
                     artifact.conversation_log = artifact.conversation;
                     console.log('✅ Mapped conversation to conversation_log, length:', artifact.conversation.length);
+                    console.log('📝 First conversation message:', artifact.conversation[0]);
+                    console.log('📝 Last conversation message:', artifact.conversation[artifact.conversation.length - 1]);
 
-                    // Map question counts for the UI
+                    // Map question counts for the UI - now more accurate
                     artifact.total_questions = artifact.conversation.length;
-                    artifact.answered_questions = artifact.conversation.length; // All questions in conversation were answered
+                    artifact.answered_questions = artifact.conversation.filter((q: any) =>
+                        q.answer && q.answer.toLowerCase() !== 'skip'
+                    ).length;
+                } else if (artifact.conversation_log && Array.isArray(artifact.conversation_log)) {
+                    // Conversation might already be in conversation_log field
+                    console.log('✅ Found conversation in conversation_log field, length:', artifact.conversation_log.length);
+                    artifact.total_questions = artifact.conversation_log.length;
+                    artifact.answered_questions = artifact.conversation_log.filter((q: any) =>
+                        q.answer && q.answer.toLowerCase() !== 'skip'
+                    ).length;
                 } else {
-                    console.log('⚠️ No conversation array found');
-                    artifact.conversation_log = [];
-                    artifact.total_questions = 0;
-                    artifact.answered_questions = 0;
+                    console.log('⚠️ No conversation array found in artifact');
+                    console.log('📊 Available keys in artifact:', Object.keys(artifact));
+
+                    // Check if conversation is nested in another object
+                    if (artifact.detailed_score?.conversation && Array.isArray(artifact.detailed_score.conversation)) {
+                        console.log('✅ Found conversation in detailed_score.conversation');
+                        artifact.conversation_log = artifact.detailed_score.conversation;
+                        artifact.total_questions = artifact.detailed_score.conversation.length;
+                        artifact.answered_questions = artifact.detailed_score.conversation.filter((q: any) =>
+                            q.answer && q.answer.toLowerCase() !== 'skip'
+                        ).length;
+                    } else {
+                        artifact.conversation_log = [];
+                        artifact.total_questions = 0;
+                        artifact.answered_questions = 0;
+                    }
                 }
 
                 console.log('📊 Final artifact with mapped assessment:', !!artifact.ai_assessment);
@@ -607,7 +632,7 @@ export default function InterviewResultPage() {
                             <div>
                                 <h2 className="text-xl font-bold text-gray-900">Interview Results</h2>
                                 <p className="text-sm text-gray-600">
-                                    Completed: {formatDate(selectedArtifact.completed_at)} • Duration: {selectedArtifact.duration_minutes || 0}m
+                                    Completed: {formatDate(selectedArtifact.completed_at)} • Type: {selectedArtifact.ai_assessment?.industry_type || 'AI Interview'}
                                 </p>
                             </div>
                             {selectedArtifact.ai_assessment?.final_recommendation && (
@@ -661,16 +686,18 @@ export default function InterviewResultPage() {
                                 </CardContent>
                             </Card>
 
-                            <Card className="border-orange-200 bg-gradient-to-br from-orange-50 to-orange-100">
+                            <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50 to-emerald-100">
                                 <CardContent className="p-3 text-center">
                                     <div className="flex items-center justify-center mb-1">
-                                        <Clock className="h-4 w-4 text-orange-600" />
+                                        <CheckCircle className="h-4 w-4 text-emerald-600" />
                                     </div>
-                                    <p className="text-xs font-medium text-orange-800">Duration</p>
-                                    <p className="text-lg font-bold text-orange-900 mb-1">
-                                        {selectedArtifact.duration_minutes || 0}m
-                                    </p>
-                                    <p className="text-xs text-orange-700">Quality: {selectedArtifact.ai_assessment?.interview_quality_score || 0}/10</p>
+                                    <p className="text-xs font-medium text-emerald-800">Recommendation</p>
+                                    <div className="text-lg font-bold text-emerald-900 mb-1">
+                                        <Badge className={`${getRecommendationColor(selectedArtifact.ai_assessment?.final_recommendation || '')} text-xs px-2 py-1`}>
+                                            {getRecommendationText(selectedArtifact.ai_assessment?.final_recommendation || '')}
+                                        </Badge>
+                                    </div>
+                                    <p className="text-xs text-emerald-700">Quality: {selectedArtifact.ai_assessment?.interview_quality_score || 0}/10</p>
                                 </CardContent>
                             </Card>
 
@@ -746,8 +773,10 @@ export default function InterviewResultPage() {
                                                     <span className="font-medium">{formatDate(selectedArtifact.completed_at)}</span>
                                                 </div>
                                                 <div className="flex justify-between">
-                                                    <span className="text-gray-600">Duration:</span>
-                                                    <span className="font-medium">{selectedArtifact.duration_minutes || 0} minutes</span>
+                                                    <span className="text-gray-600">Recommendation:</span>
+                                                    <Badge className={getRecommendationColor(selectedArtifact.ai_assessment?.final_recommendation || '')}>
+                                                        {getRecommendationText(selectedArtifact.ai_assessment?.final_recommendation || '')}
+                                                    </Badge>
                                                 </div>
                                                 <div className="flex justify-between">
                                                     <span className="text-gray-600">Industry:</span>
@@ -792,61 +821,174 @@ export default function InterviewResultPage() {
                             </TabsContent>
 
                             <TabsContent value="conversation" className="p-6">
+                                {/* Debug information in development */}
+                                {process.env.NODE_ENV === 'development' && selectedArtifact && (
+                                    <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm">
+                                        <strong>Debug Info:</strong>
+                                        <br />• Conversation Log Length: {selectedArtifact.conversation_log?.length || 0}
+                                        <br />• Conversation Field Exists: {selectedArtifact.conversation ? 'Yes' : 'No'}
+                                        <br />• Conversation Length: {selectedArtifact.conversation?.length || 0}
+                                        <br />• Has conversation_log field: {selectedArtifact.conversation_log ? 'Yes' : 'No'}
+                                    </div>
+                                )}
+
                                 {selectedArtifact?.conversation_log && selectedArtifact.conversation_log.length > 0 ? (
                                     <div className="space-y-4">
                                         <div className="flex items-center justify-between mb-4">
-                                            <h3 className="text-base font-semibold text-gray-800">Interview Conversation</h3>
-                                            <Badge variant="outline" className="border-blue-200 text-blue-700">
-                                                {selectedArtifact.conversation_log.length} messages
-                                            </Badge>
+                                            <h3 className="text-lg font-medium text-gray-700">Interview Conversation</h3>
+                                            <div className="flex items-center gap-2">
+                                                <Badge variant="outline" className="border-gray-200 text-gray-600 text-xs">
+                                                    {selectedArtifact.conversation_log.length} questions
+                                                </Badge>
+                                                <Badge variant="outline" className="border-gray-200 text-gray-600 text-xs">
+                                                    {(selectedArtifact.conversation_log.reduce((sum: number, q: any) => sum + (q.engagement_score || 0), 0) / selectedArtifact.conversation_log.length).toFixed(1)}/5 avg
+                                                </Badge>
+                                            </div>
                                         </div>
-                                        <div className="space-y-3 max-h-96 overflow-y-auto">
-                                            {selectedArtifact.conversation_log.map((message: any, index: number) => {
-                                                const isUser = message.type === 'user' || message.role === 'user' || message.sender === 'user';
-                                                const content = message.content || message.message || message.text || 'No content available';
+                                        <div className="space-y-4 max-h-[600px] overflow-y-auto">
+                                            {selectedArtifact.conversation_log.map((exchange: any, index: number) => {
+                                                const formatTimestamp = (timestamp: string) => {
+                                                    try {
+                                                        return new Date(timestamp).toLocaleTimeString("en-US", {
+                                                            hour: "2-digit",
+                                                            minute: "2-digit"
+                                                        });
+                                                    } catch {
+                                                        return timestamp;
+                                                    }
+                                                };
+
+                                                const getQuestionTypeColor = (type: string) => {
+                                                    switch (type?.toLowerCase()) {
+                                                        case 'icebreaker':
+                                                            return 'bg-blue-50 text-blue-700 border-blue-100';
+                                                        case 'resume':
+                                                            return 'bg-green-50 text-green-700 border-green-100';
+                                                        case 'scenario':
+                                                            return 'bg-purple-50 text-purple-700 border-purple-100';
+                                                        case 'bonus':
+                                                            return 'bg-orange-50 text-orange-700 border-orange-100';
+                                                        default:
+                                                            return 'bg-gray-50 text-gray-700 border-gray-100';
+                                                    }
+                                                };
 
                                                 return (
-                                                    <div key={index} className={`p-3 rounded-lg text-sm ${isUser
-                                                        ? 'bg-blue-50 border border-blue-200 ml-8'
-                                                        : 'bg-gray-50 border border-gray-200 mr-8'
-                                                        }`}>
-                                                        <div className="flex items-center justify-between mb-2">
-                                                            <span className="font-medium text-xs flex items-center gap-2">
-                                                                {isUser ? (
-                                                                    <>
-                                                                        <User className="w-3 h-3 text-blue-600" />
-                                                                        <span className="text-blue-700">You</span>
-                                                                    </>
-                                                                ) : (
-                                                                    <>
-                                                                        <Brain className="w-3 h-3 text-gray-600" />
-                                                                        <span className="text-gray-700">AI Interviewer</span>
-                                                                    </>
-                                                                )}
-                                                            </span>
-                                                            <span className="text-xs text-gray-500">
-                                                                {message.timestamp ? formatDate(message.timestamp) : `Message ${index + 1}`}
-                                                            </span>
-                                                        </div>
-                                                        <p className={`leading-relaxed ${isUser ? 'text-blue-800' : 'text-gray-800'}`}>{content}</p>
-
-                                                        {/* Show additional metadata if available */}
-                                                        {(message.duration || message.confidence || message.sentiment) && (
-                                                            <div className="mt-2 flex gap-4 text-xs text-gray-500">
-                                                                {message.duration && (
-                                                                    <span>Duration: {message.duration}s</span>
-                                                                )}
-                                                                {message.confidence && (
-                                                                    <span>Confidence: {message.confidence}%</span>
-                                                                )}
-                                                                {message.sentiment && (
-                                                                    <span>Sentiment: {message.sentiment}</span>
-                                                                )}
+                                                    <div key={index} className="space-y-3">
+                                                        {/* AI Question - Left aligned, max width */}
+                                                        <div className="flex justify-start">
+                                                            <div className="max-w-4xl bg-gray-50 border border-gray-200 rounded-2xl p-4 shadow-sm">
+                                                                <div className="flex items-center gap-2 mb-2">
+                                                                    <Brain className="w-4 h-4 text-gray-600" />
+                                                                    <span className="text-sm font-medium text-gray-700">AI</span>
+                                                                    <Badge className={`text-xs px-2 py-1 ${getQuestionTypeColor(exchange.question_type)}`}>
+                                                                        {exchange.question_type}
+                                                                    </Badge>
+                                                                    <span className="text-xs text-gray-500">
+                                                                        Q{exchange.question_number}
+                                                                    </span>
+                                                                    {exchange.is_followup && (
+                                                                        <Badge variant="outline" className="text-xs px-2 py-1 border-blue-200 text-blue-600">
+                                                                            Follow-up
+                                                                        </Badge>
+                                                                    )}
+                                                                    <span className="text-xs text-gray-500 ml-auto">
+                                                                        {formatTimestamp(exchange.timestamp)}
+                                                                    </span>
+                                                                </div>
+                                                                <p className="text-gray-800 leading-relaxed text-sm">
+                                                                    {exchange.question}
+                                                                </p>
                                                             </div>
+                                                        </div>
+
+                                                        {/* User Answer - Right aligned, max width */}
+                                                        <div className="flex justify-end">
+                                                            <div className="max-w-4xl bg-blue-50 border border-blue-200 rounded-2xl p-4 shadow-sm">
+                                                                <div className="flex items-center gap-2 mb-2">
+                                                                    <User className="w-4 h-4 text-blue-600" />
+                                                                    <span className="text-sm font-medium text-blue-700">You</span>
+                                                                    <div className="flex items-center gap-1 ml-auto">
+                                                                        <Star className="w-3 h-3 text-yellow-500" />
+                                                                        <span className="text-xs text-gray-600">
+                                                                            {exchange.engagement_score}/5
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                                <p className="text-blue-800 leading-relaxed text-sm">
+                                                                    {exchange.answer}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Clarification as separate question if different from answer */}
+                                                        {exchange.clarification && exchange.clarification !== exchange.answer && (
+                                                            <>
+                                                                <div className="flex justify-start">
+                                                                    <div className="max-w-3xl bg-yellow-50 border border-yellow-200 rounded-2xl p-4 shadow-sm">
+                                                                        <div className="flex items-center gap-2 mb-2">
+                                                                            <Brain className="w-4 h-4 text-yellow-600" />
+                                                                            <span className="text-sm font-medium text-yellow-700">AI</span>
+                                                                            <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200 text-xs px-2 py-1">
+                                                                                Clarification
+                                                                            </Badge>
+                                                                            <span className="text-xs text-gray-500 ml-auto">
+                                                                                {formatTimestamp(exchange.timestamp)}
+                                                                            </span>
+                                                                        </div>
+                                                                        <p className="text-yellow-800 leading-relaxed text-sm">
+                                                                            Could you clarify what you meant?
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="flex justify-end">
+                                                                    <div className="max-w-3xl bg-green-50 border border-green-200 rounded-2xl p-4 shadow-sm">
+                                                                        <div className="flex items-center gap-2 mb-2">
+                                                                            <User className="w-4 h-4 text-green-600" />
+                                                                            <span className="text-sm font-medium text-green-700">You</span>
+                                                                        </div>
+                                                                        <p className="text-green-800 leading-relaxed text-sm">
+                                                                            {exchange.clarification}
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                            </>
                                                         )}
                                                     </div>
                                                 );
                                             })}
+
+                                            {/* Conversation Summary */}
+                                            <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                                                <h4 className="text-sm font-medium text-gray-700 mb-3">Conversation Summary</h4>
+                                                <div className="grid grid-cols-4 gap-4">
+                                                    <div className="text-center">
+                                                        <div className="text-xl font-semibold text-blue-600 mb-1">
+                                                            {selectedArtifact.conversation_log.length}
+                                                        </div>
+                                                        <div className="text-xs text-gray-600">Questions</div>
+                                                    </div>
+                                                    <div className="text-center">
+                                                        <div className="text-xl font-semibold text-green-600 mb-1">
+                                                            {selectedArtifact.conversation_log.filter((q: any) => q.answer && q.answer.toLowerCase() !== 'skip').length}
+                                                        </div>
+                                                        <div className="text-xs text-gray-600">Answered</div>
+                                                    </div>
+                                                    <div className="text-center">
+                                                        <div className="text-xl font-semibold text-purple-600 mb-1">
+                                                            {selectedArtifact.conversation_log.filter((q: any) => q.is_followup).length}
+                                                        </div>
+                                                        <div className="text-xs text-gray-600">Follow-ups</div>
+                                                    </div>
+                                                    <div className="text-center">
+                                                        <div className="text-xl font-semibold text-yellow-600 mb-1">
+                                                            {(selectedArtifact.conversation_log.reduce((sum: number, q: any) => sum + (q.engagement_score || 0), 0) / selectedArtifact.conversation_log.length).toFixed(1)}
+                                                        </div>
+                                                        <div className="text-xs text-gray-600">Engagement</div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 ) : (
