@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ProtectedRoute } from '@/components/protected-route';
 import { AppNavigation } from '@/components/app-navigation';
@@ -93,7 +93,8 @@ interface JobOption {
     company_name?: string;
 }
 
-export default function ApplicationsPage() {
+// Component that uses useSearchParams - needs to be wrapped in Suspense
+function ApplicationsContent() {
     const { user } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -571,5 +572,22 @@ export default function ApplicationsPage() {
                 </div>
             </div>
         </ProtectedRoute>
+    );
+}
+
+export default function ApplicationsPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-gray-50">
+                <AppNavigation items={navigationItems} title="Job Applications" />
+                <div className="container mx-auto px-4 py-8">
+                    <div className="flex items-center justify-center h-64">
+                        <Loader2 className="h-8 w-8 animate-spin" />
+                    </div>
+                </div>
+            </div>
+        }>
+            <ApplicationsContent />
+        </Suspense>
     );
 }
