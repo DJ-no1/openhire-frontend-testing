@@ -156,7 +156,10 @@ export function InterviewButton({ applicationId, className = "", size = "md" }: 
         }
 
         // Handle case where no threshold is set (proceed to interview)
-        if (data.resume_threshold === null || data.resume_threshold === undefined) {
+        // This includes null, undefined, or "none" as string
+        if (data.resume_threshold === null ||
+            data.resume_threshold === undefined ||
+            data.resume_threshold === "none") {
             if (data.interview_exists) {
                 if (data.interview_status === 'completed') {
                     return {
