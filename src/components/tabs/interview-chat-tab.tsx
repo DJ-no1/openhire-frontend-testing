@@ -1,4 +1,11 @@
 'use client';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -355,19 +362,17 @@ export function InterviewChatTab({ artifact, applicationDetails }: InterviewChat
                                 />
                             </div>
                         </div>
-                        <select
-                            value={filterType}
-                            onChange={(e) => setFilterType(e.target.value)}
-                            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                            <option value="all">All Messages</option>
-                            <option value="ai">AI Questions</option>
-                            <option value="human">Candidate Answers</option>
-                        </select>
-                        <Button variant="outline" size="sm">
-                            <Download className="h-4 w-4 mr-2" />
-                            Export
-                        </Button>
+                        <Select value={filterType} onValueChange={setFilterType}>
+  <SelectTrigger className="w-[180px]">
+    <SelectValue placeholder="Select filter" />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="all">All Messages</SelectItem>
+    <SelectItem value="ai">AI Questions</SelectItem>
+    <SelectItem value="human">Candidate Answers</SelectItem>
+  </SelectContent>
+</Select>
+                        
                     </div>
 
                     {/* Conversation Display - Modern Chat Style */}
