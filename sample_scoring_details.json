@@ -1,0 +1,311 @@
+{
+  "high_performing_candidate": {
+    "overall_score": 87,
+    "confidence": 0.92,
+    "risk_flags": [
+      "Short tenure at previous company (8 months)"
+    ],
+    "hard_filter_failures": [],
+    "dimension_breakdown": {
+      "skill_match": {
+        "score": 92,
+        "weight": 0.25,
+        "evidence": [
+          "5+ years of React.js experience mentioned",
+          "TypeScript expertise demonstrated in multiple projects",
+          "Node.js backend development experience",
+          "AWS cloud platform experience",
+          "Agile/Scrum methodology experience"
+        ]
+      },
+      "experience_fit": {
+        "score": 85,
+        "weight": 0.20,
+        "evidence": [
+          "6 years total software development experience",
+          "4 years in senior developer roles",
+          "Experience leading development teams",
+          "Full-stack development background",
+          "Previous experience in fintech industry"
+        ]
+      },
+      "impact_outcomes": {
+        "score": 78,
+        "weight": 0.15,
+        "evidence": [
+          "Led team that improved system performance by 40%",
+          "Reduced deployment time from 2 hours to 15 minutes",
+          "Mentored 3 junior developers",
+          "Contributed to open-source projects with 500+ stars"
+        ]
+      },
+      "role_alignment": {
+        "score": 88,
+        "weight": 0.15,
+        "evidence": [
+          "Previous role responsibilities match 80% of job requirements",
+          "Experience with similar tech stack",
+          "Team leadership experience relevant to senior position",
+          "Remote work experience for distributed team role"
+        ]
+      },
+      "project_tech_depth": {
+        "score": 83,
+        "weight": 0.10,
+        "evidence": [
+          "Built scalable microservices architecture",
+          "Implemented complex state management solutions",
+          "Designed and developed RESTful APIs",
+          "Experience with containerization (Docker, Kubernetes)"
+        ]
+      },
+      "career_trajectory": {
+        "score": 91,
+        "weight": 0.05,
+        "evidence": [
+          "Steady progression from junior to senior roles",
+          "Increased responsibilities over time",
+          "Consistent skill development and learning",
+          "Leadership roles in recent positions"
+        ]
+      },
+      "communication_clarity": {
+        "score": 76,
+        "weight": 0.05,
+        "evidence": [
+          "Well-structured resume with clear achievements",
+          "Technical blog posts and documentation",
+          "Conference speaking experience",
+          "Some grammatical inconsistencies in descriptions"
+        ]
+      },
+      "certs_education": {
+        "score": 82,
+        "weight": 0.03,
+        "evidence": [
+          "Bachelor's degree in Computer Science",
+          "AWS Certified Solutions Architect",
+          "React.js Professional Certification",
+          "Continuous learning through online courses"
+        ]
+      },
+      "extras": {
+        "score": 79,
+        "weight": 0.02,
+        "evidence": [
+          "Contributions to open-source projects",
+          "Technical mentoring experience",
+          "Side projects demonstrating innovation",
+          "Active in developer community"
+        ]
+      }
+    }
+  },
+  "candidate_with_concerns": {
+    "overall_score": 64,
+    "confidence": 0.78,
+    "risk_flags": [
+      "Gap in employment history (6 months)",
+      "Frequent job changes (4 jobs in 3 years)",
+      "Limited experience with required technology stack"
+    ],
+    "hard_filter_failures": [
+      "Does not meet minimum 5 years experience requirement",
+      "Missing required certification in AWS"
+    ],
+    "dimension_breakdown": {
+      "skill_match": {
+        "score": 58,
+        "weight": 0.25,
+        "evidence": [
+          "Some JavaScript experience but limited React.js",
+          "Basic understanding of Node.js",
+          "No mention of TypeScript experience",
+          "Limited cloud platform experience"
+        ]
+      },
+      "experience_fit": {
+        "score": 45,
+        "weight": 0.20,
+        "evidence": [
+          "Only 3 years total software development experience",
+          "No senior-level experience",
+          "Limited team collaboration experience",
+          "Mostly frontend-focused background"
+        ]
+      },
+      "impact_outcomes": {
+        "score": 52,
+        "weight": 0.15,
+        "evidence": [
+          "Some project contributions mentioned",
+          "Limited quantifiable achievements",
+          "No leadership or mentoring experience",
+          "Basic project participation rather than ownership"
+        ]
+      },
+      "role_alignment": {
+        "score": 61,
+        "weight": 0.15,
+        "evidence": [
+          "Some overlap with job requirements",
+          "Missing key technical skills",
+          "Limited experience with similar responsibilities",
+          "No remote work experience"
+        ]
+      },
+      "project_tech_depth": {
+        "score": 69,
+        "weight": 0.10,
+        "evidence": [
+          "Worked on medium-complexity applications",
+          "Some API integration experience",
+          "Limited architecture design experience",
+          "Good problem-solving approach"
+        ]
+      },
+      "career_trajectory": {
+        "score": 71,
+        "weight": 0.05,
+        "evidence": [
+          "Progression from intern to junior developer",
+          "Showing learning and growth mindset",
+          "Frequent job changes may indicate instability",
+          "Recent upskilling efforts"
+        ]
+      },
+      "communication_clarity": {
+        "score": 73,
+        "weight": 0.05,
+        "evidence": [
+          "Generally well-written resume",
+          "Clear presentation of projects",
+          "Some minor formatting inconsistencies",
+          "Good use of technical terminology"
+        ]
+      },
+      "certs_education": {
+        "score": 88,
+        "weight": 0.03,
+        "evidence": [
+          "Bachelor's degree in Computer Science",
+          "Recent completion of coding bootcamp",
+          "Multiple online course certifications",
+          "Strong educational foundation"
+        ]
+      },
+      "extras": {
+        "score": 65,
+        "weight": 0.02,
+        "evidence": [
+          "Personal projects on GitHub",
+          "Participation in hackathons",
+          "Some volunteer coding work",
+          "Active learning demonstrated"
+        ]
+      }
+    }
+  },
+  "exceptional_candidate": {
+    "overall_score": 96,
+    "confidence": 0.95,
+    "risk_flags": [],
+    "hard_filter_failures": [],
+    "dimension_breakdown": {
+      "skill_match": {
+        "score": 98,
+        "weight": 0.25,
+        "evidence": [
+          "10+ years of React.js including early adoption",
+          "TypeScript expert with community contributions",
+          "Advanced Node.js and microservices architecture",
+          "AWS Solutions Architect Professional certified",
+          "DevOps and CI/CD pipeline expertise",
+          "Experience with cutting-edge technologies"
+        ]
+      },
+      "experience_fit": {
+        "score": 94,
+        "weight": 0.20,
+        "evidence": [
+          "12 years total software development experience",
+          "8 years in senior and principal roles",
+          "Engineering team leadership experience (20+ people)",
+          "Full-stack development with system architecture",
+          "Industry experience directly relevant to role"
+        ]
+      },
+      "impact_outcomes": {
+        "score": 97,
+        "weight": 0.15,
+        "evidence": [
+          "Led digital transformation saving $2M annually",
+          "Improved system performance by 300%",
+          "Built engineering team from 5 to 25 people",
+          "Multiple successful product launches",
+          "Patent holder for innovative solutions"
+        ]
+      },
+      "role_alignment": {
+        "score": 95,
+        "weight": 0.15,
+        "evidence": [
+          "Previous roles 95% match with job requirements",
+          "Extensive experience with identical tech stack",
+          "Leadership experience perfect for team management",
+          "Remote-first company experience"
+        ]
+      },
+      "project_tech_depth": {
+        "score": 93,
+        "weight": 0.10,
+        "evidence": [
+          "Designed enterprise-scale distributed systems",
+          "Complex state management and data architecture",
+          "Advanced performance optimization techniques",
+          "Security and compliance implementation"
+        ]
+      },
+      "career_trajectory": {
+        "score": 96,
+        "weight": 0.05,
+        "evidence": [
+          "Consistent progression to principal engineer",
+          "Increasing technical and leadership responsibilities",
+          "Thought leadership in the industry",
+          "Strategic technology decision making"
+        ]
+      },
+      "communication_clarity": {
+        "score": 89,
+        "weight": 0.05,
+        "evidence": [
+          "Exceptionally well-crafted resume",
+          "Published technical articles and books",
+          "International conference speaker",
+          "Clear and compelling achievement descriptions"
+        ]
+      },
+      "certs_education": {
+        "score": 91,
+        "weight": 0.03,
+        "evidence": [
+          "Master's degree in Computer Science",
+          "Multiple AWS certifications including Professional",
+          "Industry-specific certifications",
+          "Continuous learning and skill development"
+        ]
+      },
+      "extras": {
+        "score": 94,
+        "weight": 0.02,
+        "evidence": [
+          "Major open-source project maintainer",
+          "Technical advisory board member",
+          "Industry conference organizer",
+          "Mentorship program leadership"
+        ]
+      }
+    }
+  }
+}

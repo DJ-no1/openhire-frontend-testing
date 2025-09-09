@@ -516,6 +516,7 @@ export default function InterviewAnalysisPage() {
                                 <ResumeBreakdownTab
                                     artifact={selectedArtifact}
                                     applicationDetails={applicationDetails}
+                                    applicationId={applicationId}
                                 />
                             </ErrorBoundary>
                         </TabsContent>
