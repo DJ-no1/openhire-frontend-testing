@@ -32,14 +32,17 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        // Verify user role
-        const { data: userData, error: userError } = await supabase
+        // Verify user role - check both users table and auth metadata
+        const { data: userData } = await supabase
             .from('users')
             .select('role')
             .eq('id', user.id)
             .single();
 
-        if (userError || userData?.role !== 'recruiter') {
+        // Fallback to auth metadata if users table doesn't have role
+        const userRole = userData?.role || user.user_metadata?.role || 'candidate';
+
+        if (userRole !== 'recruiter') {
             return NextResponse.json(
                 { error: 'Forbidden - Recruiter access required' },
                 { status: 403 }

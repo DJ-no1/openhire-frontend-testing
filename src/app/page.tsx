@@ -1,13 +1,10 @@
 "use client";
 
-import { Metadata } from "next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import Link from "next/link";
 import PublicLayout from "@/components/public-layout";
-import FeatureCard from "@/components/feature-card";
-import TestimonialCard from "@/components/testimonial-card";
 import {
   Building,
   UserCheck,
@@ -301,7 +298,9 @@ export default function HomePage() {
                       <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
                       <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
                       <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
-                      <span className="ml-1 text-base font-bold text-gray-900 dark:text-white">4.9</span>
+                      <span className="ml-1 text-base font-bold text-gray-900 dark:text-white">
+                        4.9
+                      </span>
                     </div>
                     <div className="text-sm text-gray-500 dark:text-gray-400">
                       From 2,000+ reviews
@@ -319,35 +318,53 @@ export default function HomePage() {
                       {/* Microsoft */}
                       <div className="group flex items-center gap-2.5 grayscale hover:grayscale-0 opacity-50 hover:opacity-100 transition-all duration-300">
                         <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-sm">
-                          <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M11.4 24H0V12.6h11.4V24zM24 24H12.6V12.6H24V24zM11.4 11.4H0V0h11.4v11.4zm12.6 0H12.6V0H24v11.4z"/>
+                          <svg
+                            className="w-5 h-5 text-white"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                          >
+                            <path d="M11.4 24H0V12.6h11.4V24zM24 24H12.6V12.6H24V24zM11.4 11.4H0V0h11.4v11.4zm12.6 0H12.6V0H24v11.4z" />
                           </svg>
                         </div>
-                        <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">Microsoft</span>
+                        <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">
+                          Microsoft
+                        </span>
                       </div>
 
                       {/* Google */}
                       <div className="group flex items-center gap-2.5 grayscale hover:grayscale-0 opacity-50 hover:opacity-100 transition-all duration-300">
                         <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-red-500 via-yellow-500 to-green-500 flex items-center justify-center shadow-sm">
-                          <span className="text-white font-bold text-lg">G</span>
+                          <span className="text-white font-bold text-lg">
+                            G
+                          </span>
                         </div>
-                        <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">Google</span>
+                        <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">
+                          Google
+                        </span>
                       </div>
 
                       {/* Amazon */}
                       <div className="group flex items-center gap-2.5 grayscale hover:grayscale-0 opacity-50 hover:opacity-100 transition-all duration-300">
                         <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-sm">
-                          <span className="text-white font-bold text-lg">a</span>
+                          <span className="text-white font-bold text-lg">
+                            a
+                          </span>
                         </div>
-                        <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">Amazon</span>
+                        <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">
+                          Amazon
+                        </span>
                       </div>
 
                       {/* Meta */}
                       <div className="group flex items-center gap-2.5 grayscale hover:grayscale-0 opacity-50 hover:opacity-100 transition-all duration-300">
                         <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center shadow-sm">
-                          <span className="text-white font-bold text-lg">M</span>
+                          <span className="text-white font-bold text-lg">
+                            M
+                          </span>
                         </div>
-                        <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">Meta</span>
+                        <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">
+                          Meta
+                        </span>
                       </div>
 
                       {/* Salesforce */}
@@ -355,7 +372,9 @@ export default function HomePage() {
                         <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center shadow-sm">
                           <Cloud className="w-5 h-5 text-white" />
                         </div>
-                        <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">Salesforce</span>
+                        <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">
+                          Salesforce
+                        </span>
                       </div>
 
                       {/* IBM */}
@@ -363,7 +382,9 @@ export default function HomePage() {
                         <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-700 to-blue-900 flex items-center justify-center shadow-sm">
                           <Building className="w-5 h-5 text-white" />
                         </div>
-                        <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">IBM</span>
+                        <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">
+                          IBM
+                        </span>
                       </div>
                     </div>
                   </div>
