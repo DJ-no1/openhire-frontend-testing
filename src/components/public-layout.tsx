@@ -61,12 +61,12 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
                                     </Link>
                                 ) : (
                                     <>
-                                        <Link href="/auth/signin">
+                                        <Link href="/get-started">
                                             <Button variant="ghost" size="sm">
                                                 Sign In
                                             </Button>
                                         </Link>
-                                        <Link href="/auth/signup">
+                                        <Link href="/get-started">
                                             <Button size="sm">
                                                 Get Started
                                             </Button>
@@ -126,7 +126,7 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
                                                     Sign In
                                                 </Button>
                                             </Link>
-                                            <Link href="/auth/signup" onClick={() => setIsMenuOpen(false)}>
+                                            <Link href="/get-started" onClick={() => setIsMenuOpen(false)}>
                                                 <Button className="w-full">
                                                     Get Started
                                                 </Button>

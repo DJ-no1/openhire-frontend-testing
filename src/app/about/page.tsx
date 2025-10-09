@@ -270,7 +270,7 @@ export default function AboutPage() {
                         OpenHire is here to help you succeed.
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                        <Link href="/auth/signup">
+                        <Link href="/get-started">
                             <Button size="lg" variant="secondary" className="px-8">
                                 Get Started Today
                             </Button>
